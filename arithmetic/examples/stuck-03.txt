@@ -1,0 +1,3 @@
+// succ can only be applied to a numeric value
+
+succ if true then false else false

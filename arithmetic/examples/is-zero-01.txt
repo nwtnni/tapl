@@ -1,0 +1,3 @@
+// Successor case
+
+iszero succ succ 0

@@ -1,4 +1,5 @@
-WHITESPACE = _{ " \n\r\t" }
+COMMENT    = _{ "//" ~ (!"\n" ~ ANY)* ~ "\n" }
+WHITESPACE = _{ " " | "\n" | "\r" | "\t" }
 
 Program = _{ SOI ~ Exp ~ EOI }
 

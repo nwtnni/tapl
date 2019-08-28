@@ -1,0 +1,3 @@
+// pred and succ cancel out
+
+pred succ pred succ 0

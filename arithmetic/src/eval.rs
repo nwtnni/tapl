@@ -16,6 +16,7 @@ impl ast::Exp {
         | Succ(n) => Succ(Box::new(n.step()?)),
         | Pred(box Zero) => Zero,
         | Pred(box Succ(box n)) => n.clone(),
+        | Pred(n) => Pred(Box::new(n.step()?)),
         | IsZero(box Zero) => True,
         | IsZero(box Succ(box n)) if n.is_numeric() => False,
         | IsZero(n) => IsZero(Box::new(n.step()?)),

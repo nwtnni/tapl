@@ -1,0 +1,3 @@
+// Literal true guard
+
+if true then 0 else succ 0
