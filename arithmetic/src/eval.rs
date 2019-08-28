@@ -1,40 +1,37 @@
+use std::iter;
+
 use crate::ast;
 
 impl ast::Exp {
-    pub fn step_all(mut self) -> Result<ast::Exp, ast::Exp> {
-        loop {
-            match self.step() {
-            | Ok(next) => self = next,
-            | Err(stuck) => break if stuck.is_value() { Ok(stuck) } else { Err(stuck) },
-            }
-        }
+    pub fn step_all(mut self) -> impl Iterator<Item = ast::Exp> {
+        iter::successors(Some(self), |prev| prev.step())
     }
 
-    pub fn step(self) -> Result<ast::Exp, ast::Exp> {
+    pub fn step(&self) -> Option<ast::Exp> {
         use ast::Exp::*;
         let next = match self {
-        | Cond(box True, t, _) => *t,
-        | Cond(box False, _, f) => *f,
-        | Cond(b, t, f) => Cond(Box::new(b.step()?), t, f),
+        | Cond(box True, box t, _) => t.clone(),
+        | Cond(box False, _, box f) => f.clone(),
+        | Cond(b, t, f) => Cond(Box::new(b.step()?), t.clone(), f.clone()),
         | Succ(n) => Succ(Box::new(n.step()?)),
         | Pred(box Zero) => Zero,
-        | Pred(box Succ(n)) => *n,
+        | Pred(box Succ(box n)) => n.clone(),
         | IsZero(box Zero) => True,
-        | IsZero(box Succ(n)) if n.is_numeric() => False,
+        | IsZero(box Succ(box n)) if n.is_numeric() => False,
         | IsZero(n) => IsZero(Box::new(n.step()?)),
-        | stuck => return Err(stuck),
+        | _ => return None,
         };
-        Ok(next)
+        Some(next)
     }
 
-    pub fn eval(self) -> Result<ast::Exp, ast::Exp> {
+    pub fn eval(self) -> Option<ast::Exp> {
         use ast::Exp::*;
         let value = match self {
         | Cond(b, t, f) => {
             match b.eval()? {
             | True => t.eval()?,
             | False => f.eval()?,
-            | stuck => return Err(stuck),
+            | _ => return None,
             }
         }
         | Succ(n) => Succ(Box::new(n.eval()?)),
@@ -42,18 +39,18 @@ impl ast::Exp {
             match n.eval()? {
             | Zero => Zero,
             | Succ(n) => *n,
-            | stuck => return Err(stuck)
+            | _ => return None,
             }
         }
         | IsZero(n) => {
             match n.eval()? {
             | Zero => True,
             | Succ(_) => False,
-            | stuck => return Err(stuck)
+            | _ => return None,
             }
         }
         | value => value,
         };
-        Ok(value)
+        Some(value)
     }
 }
