@@ -18,6 +18,7 @@ impl Exp {
         }
     }
 
+    #[allow(unused)]
     pub fn is_value(&self) -> bool {
         match self {
         | Exp::True

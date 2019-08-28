@@ -3,7 +3,7 @@ use std::iter;
 use crate::ast;
 
 impl ast::Exp {
-    pub fn step_all(mut self) -> impl Iterator<Item = ast::Exp> {
+    pub fn step_all(self) -> impl Iterator<Item = ast::Exp> {
         iter::successors(Some(self), |prev| prev.step())
     }
 
@@ -25,6 +25,7 @@ impl ast::Exp {
         Some(next)
     }
 
+    #[allow(unused)]
     pub fn eval(&self) -> Option<ast::Exp> {
         use ast::Exp::*;
         let value = match self {
