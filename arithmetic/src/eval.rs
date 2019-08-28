@@ -24,7 +24,7 @@ impl ast::Exp {
         Some(next)
     }
 
-    pub fn eval(self) -> Option<ast::Exp> {
+    pub fn eval(&self) -> Option<ast::Exp> {
         use ast::Exp::*;
         let value = match self {
         | Cond(b, t, f) => {
@@ -49,7 +49,7 @@ impl ast::Exp {
             | _ => return None,
             }
         }
-        | value => value,
+        | value => value.clone(),
         };
         Some(value)
     }
