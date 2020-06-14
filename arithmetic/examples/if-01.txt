@@ -1,3 +1,0 @@
-// Literal false guard
-
-if false then 0 else succ 0

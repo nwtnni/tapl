@@ -1,3 +1,0 @@
-// Base case
-
-iszero 0

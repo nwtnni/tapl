@@ -1,3 +1,0 @@
-// Nested numeric operations in iszero
-
-iszero pred succ succ pred 0

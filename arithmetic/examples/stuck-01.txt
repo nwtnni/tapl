@@ -1,3 +1,0 @@
-// Conditional guard must be a boolean
-
-if succ pred 0 then true else false

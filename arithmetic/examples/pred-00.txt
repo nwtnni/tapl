@@ -1,3 +1,0 @@
-// pred 0 is a no-op
-
-pred pred 0

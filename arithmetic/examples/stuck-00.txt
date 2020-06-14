@@ -1,3 +1,0 @@
-// iszero only works on numeric values
-
-iszero true

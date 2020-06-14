@@ -1,3 +1,0 @@
-// Succ
-
-succ succ succ 0

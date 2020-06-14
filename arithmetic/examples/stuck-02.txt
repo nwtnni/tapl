@@ -1,3 +1,0 @@
-// pred can only be applied to a numeric value
-
-pred true

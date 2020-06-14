@@ -1,2 +1,4 @@
 [workspace]
-members = ["arithmetic", "untyped"]
+members = [
+    "chapter-03",
+]
