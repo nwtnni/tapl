@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::fmt;
 
 use maplit::hashset;
 use typed_arena::Arena;
@@ -201,6 +202,21 @@ impl<'a> T<'a> {
             .max(t_2.depth())
             .max(t_3.depth())
             + 1,
+        }
+    }
+}
+
+impl<'a> fmt::Display for T<'a> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        use T::*;
+        match self {
+        | True => write!(fmt, "true"),
+        | False => write!(fmt, "false"),
+        | Zero => write!(fmt, "0"),
+        | Succ(t_1) => write!(fmt, "succ {}", t_1),
+        | Pred(t_1) => write!(fmt, "pred {}", t_1),
+        | IsZero(t_1) => write!(fmt, "iszero {}", t_1),
+        | IfElse(t_1, t_2, t_3) => write!(fmt, "if {} then {} else {}", t_1, t_2, t_3),
         }
     }
 }
