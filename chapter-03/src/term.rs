@@ -100,4 +100,35 @@ impl<'a> T<'a> {
             .collect(),
         }
     }
+
+    /// Definition 3.3.2 - The size `size(t)` of a term `t`, i.e. the number of
+    /// nodes in its abstract syntax tree.
+    pub fn size(&self) -> usize {
+        use T::*;
+        match self {
+        // size(true) = 1
+        | True => 1,
+
+        // size(false) = 1
+        | False => 1,
+
+        // size(0) = 1
+        | Zero => 1,
+
+        // size(succ t₁) = size(t₁) + 1
+        | Succ(t_1) => t_1.size() + 1,
+
+        // size(pred t₁) = size(t₁) + 1
+        | Pred(t_1) => t_1.size() + 1,
+
+        // size(iszero t₁) = size(t₁) + 1
+        | IsZero(t_1) => t_1.size() + 1,
+
+        // size(if t₁ then t₂ else t₃) = size(t₁) + size(t₂) + size(t₃) + 1
+        | IfElse(t_1, t_2, t_3) => t_1.size()
+            + t_2.size()
+            + t_3.size()
+            + 1,
+        }
+    }
 }
