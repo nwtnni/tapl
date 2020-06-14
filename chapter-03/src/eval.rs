@@ -3,6 +3,65 @@ use crate::term;
 use typed_arena::Arena;
 
 impl<'a> term::T<'a> {
+    /// The multi-step evaluation relation.
+    pub fn eval(&self, arena: &'a Arena<term::T<'a>>) -> term::T<'a> {
+        use term::T::*;
+        match self {
+        //
+        // ----- (B-Value)
+        // v ↓ v
+        | &v if v.is_value() => v,
+
+        //    t₁ ↓ true    t₂ ↓ v₂
+        // -------------------------- (B-IfTrue)
+        // if t₁ then t₂ else t₃ ↓ v₂
+        | IfElse(t_1, t_2, _) if t_1.eval(arena) == True => t_2.eval(arena),
+
+        //   t₁ ↓ false    t₃ ↓ v₃
+        // -------------------------- (B-IfFalse)
+        // if t₁ then t₂ else t₃ ↓ v₃
+        | IfElse(t_1, _, t_3) if t_1.eval(arena) == False => t_3.eval(arena),
+
+        //      t₁ ↓ nv₁
+        // ------------------ (B-Succ)
+        // succ t₁ ↓ succ nv₁
+        | Succ(t_1) if t_1.eval(arena).is_numeric() => Succ(arena.alloc(t_1.eval(arena))),
+
+        //   t₁ ↓ 0
+        // ----------- (B-PredZero)
+        // pred t₁ ↓ 0
+        | Pred(t_1) if t_1.eval(arena) == Zero => Zero,
+
+        // t₁ ↓ succ nv₁
+        // ------------- (B-PredSucc)
+        // pred t₁ ↓ nv₁
+        | Pred(t_1) => {
+            match t_1.eval(arena) {
+            | Succ(&nv_1) if nv_1.is_numeric() => nv_1,
+            | _ => Pred(t_1),
+            }
+        }
+
+        //      t₁ ↓ 0
+        // ---------------- (B-IsZeroZero)
+        // iszero t₁ ↓ true
+        | IsZero(t_1) if t_1.eval(arena) == Zero => True,
+
+        //   t₁ ↓ succ nv₁
+        // ----------------- (B-IsZeroSucc)
+        // iszero t₁ ↓ false
+        | IsZero(t_1) => {
+            match t_1.eval(arena) {
+            | Succ(&nv_1) if nv_1.is_numeric() => False,
+            | _ => IsZero(t_1),
+            }
+        }
+
+        // Stuck.
+        | &t => t,
+        }
+    }
+
     /// The one-step evaluation relation.
     pub fn step(&self, arena: &'a Arena<term::T<'a>>) -> Option<term::T<'a>> {
         use term::T::*;
