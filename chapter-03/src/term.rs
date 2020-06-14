@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use maplit::hashset;
+use typed_arena::Arena;
 
 /// The set of terms `T`.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -70,6 +71,46 @@ pub enum T<'a> {
 }
 
 impl<'a> T<'a> {
+    /// Definition 3.2.3 - The set `S_i` such that:
+    ///
+    /// ```text
+    /// S_{0}     = ∅
+    /// S_{i + 1} = { true, false, 0 }
+    ///           ∪ { succ t₁, pred t₁, iszero t₁ | t₁ ∈ S_i }
+    ///           ∪ { if t₁ then t₂ else t₃ | t₁, t₂, t₃ ∈ S_i }
+    /// ```
+    pub fn generate(arena: &'a Arena<T<'a>>, index: usize) -> HashSet<T<'a>> {
+        use T::*;
+        match index {
+        | 0 => hashset!(),
+        | j => {
+            let i = j - 1;
+            let s_i = Self::generate(arena, i);
+
+            // { true, false, 0 }
+            let mut s_j = hashset!(True, False, Zero);
+
+            // ∪ { succ t₁, pred t₁, iszero t₁ | t₁ ∈ S_i }
+            for &t_1 in &s_i {
+                s_j.insert(Succ(arena.alloc(t_1)));
+                s_j.insert(Pred(arena.alloc(t_1)));
+                s_j.insert(IsZero(arena.alloc(t_1)));
+            }
+
+            // ∪ { if t₁ then t₂ else t₃ | t₁, t₂, t₃ ∈ S_i }
+            for &t_1 in &s_i {
+                for &t_2 in &s_i {
+                    for &t_3 in &s_i {
+                        s_j.insert(IfElse(arena.alloc(t_1), arena.alloc(t_2), arena.alloc(t_3)));
+                    }
+                }
+            }
+
+            s_j
+        }
+        }
+    }
+
     /// Definition 3.3.1 - The set of constants `Consts(t)` appearing in a term `t`.
     pub fn consts(&self) -> HashSet<T<'a>> {
         use T::*;

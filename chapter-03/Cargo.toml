@@ -8,3 +8,4 @@ edition = "2018"
 
 [dependencies]
 maplit = "1.0"
+typed-arena = "2.0"
