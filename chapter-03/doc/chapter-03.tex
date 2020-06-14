@@ -1,0 +1,82 @@
+\documentclass{article}
+\title{Chapter 03}
+\author{Newton Ni}
+
+\usepackage{bussproofs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+% Set cardinality: |#1|
+\newcommand{\cardinality}[1]{\lvert#1\rvert}
+
+% Set: { #1 }
+\newcommand{\set}[1]{\{\ #1\ \}}
+
+% Set comprehension: { #1 | #2 }
+\newcommand{\comp}[2]{\set{#1\ \mid\ #2}}
+
+% t₁, t₂, t₃, ...
+\newcommand{\term}[1]{\texttt{t\textsubscript{#1}}}
+
+% Monospace
+\newcommand{\ms}[1]{\texttt{#1}}
+
+\theoremstyle{remark}
+\newtheorem*{case}{Case}
+
+\begin{document}
+\maketitle
+
+\section{3.2.4}
+
+    \textit{How many elements does $S_3$ have?}
+
+    \begin{align*}
+        \cardinality{S_0} &= 0 \\
+        \cardinality{S_1} &= 3 \\
+        \cardinality{S_2} &= 3^3 + 3 \cdot 3 + 3 = 39 \\
+        \cardinality{S_3} &= 39^3 + 39 \cdot 3 + 3 = 59439
+    \end{align*}
+
+\section{3.2.5}
+
+    \textit{Show that the sets $S_i$ are }cumulative\textit{---that is,}
+    \textit{for each i we have $S_i \subseteq S_{i + 1}$.}
+
+    \begin{proof}
+        By induction on $i$. Our inductive hypothesis is:
+        \begin{align*}
+            H(i): S_i \subseteq S_{i + 1}
+        \end{align*}
+
+        \begin{case}[$i = 0$]
+            By definition, $S_0 = \emptyset$, which is a subset of any set.
+        \end{case}
+
+        \begin{case}[$i > 0$]
+            We want to show:
+            \begin{align*}
+                \forall t.\ t \in S_i \implies t \in S_{i + 1}
+            \end{align*}
+
+            By definition of $S_i$, $t$ must belong to one of three sets:
+
+            \begin{itemize}
+                \item{\set{\ms{true},\ \ms{false},\ \ms{zero}}}
+
+                These are in $S_{i + 1}$ by definition.
+
+                \item{\comp{\ms{succ \term{1}},\ \ms{pred \term{1}},\ \ms{iszero \term{1}}}{\term{1}\ $\in S_{i - 1}$}}
+
+                By the inductive hypothesis, we know that $\term{1} \in S_i$.\\
+                Then $\ms{succ \term{1}}, \ms{pred \term{1}}, \ms{iszero \term{1}} \in S_{i + 1}$, by construction.
+
+                \item{\comp{\ms{if \term{1} then \term{2} else \term{3}}}{\term{1},\ \term{2},\ \term{3}\ $\in S_{i - 1}$}}
+
+                Similarly, by the inductive hypothesis, $\term{1}, \term{2}, \term{3} \in S_i$,\\
+                and $\ms{if \term{1} then \term{2} else \term{3}} \in S_{i + 1}$ by construction.
+            \end{itemize}
+        \end{case}
+    \end{proof}
+\end{document}
