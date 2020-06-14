@@ -141,3 +141,56 @@ impl<'a> term::T<'a> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+
+    //! Note: evaluating properties of specific terms doesn't prove that these
+    //! properties hold for all terms `t`. These tests verify properties *only*
+    //! for the set of terms in S₃, and mostly serve as a sanity check.
+
+    use std::iter;
+
+    use typed_arena::Arena;
+
+    use crate::term;
+
+    /// Lemma 3.3.3 - The number of distinct constants in a term `t` is no
+    /// greater than the size of `t` (i.e. `|Consts(t)| <= size(t)`).
+    #[test]
+    fn consts_lt_size() {
+        let arena = Arena::new();
+        for term in term::T::generate(&arena, 3) {
+            assert!(term.consts().len() <= term.size());
+        }
+    }
+
+    /// Theorem 3.5.7 - Every value is in normal form.
+    #[test]
+    fn value_implies_normal() {
+        let arena = Arena::new();
+        for term in term::T::generate(&arena, 3) {
+            if term.is_value() {
+                assert_eq!(term.step(&arena), None);
+            }
+        }
+    }
+
+    /// Exercise 3.5.17 - Show that the small and big-step semantics for this
+    /// language coincide, i.e. `t ->* v iff t ↓ v`.
+    #[test]
+    fn small_big_coincide() {
+        let arena = Arena::new();
+        for term in term::T::generate(&arena, 3) {
+            let big = term.eval(&arena);
+            let small = iter::successors(Some(term), |term| term.step(&arena))
+                .last()
+                .unwrap();
+
+            // t ->* v <=> t ↓ v
+            if small.is_value() || big.is_value() {
+                assert_eq!(small, big);
+            }
+        }
+    }
+}
