@@ -131,4 +131,35 @@ impl<'a> T<'a> {
             + 1,
         }
     }
+
+    /// Definition 3.3.2 - The depth `depth(t)` of a term `t`, i.e. the smallest
+    /// `i` such that `t ∈ S_i` according to Definition 3.2.3.
+    pub fn depth(&self) -> usize {
+        use T::*;
+        match self {
+        // depth(true) = 1
+        | True => 1,
+
+        // depth(false) = 1
+        | False => 1,
+
+        // depth(0) = 1
+        | Zero => 1,
+
+        // depth(succ t₁) = depth(t₁) + 1
+        | Succ(t_1) => t_1.depth() + 1,
+
+        // depth(pred t₁) = depth(t₁) + 1
+        | Pred(t_1) => t_1.depth() + 1,
+
+        // depth(iszero t₁) = depth(t₁) + 1
+        | IsZero(t_1) => t_1.depth() + 1,
+
+        // depth(if t₁ then t₂ else t₃) = max(depth(t₁), depth(t₂), depth(t₃)) + 1
+        | IfElse(t_1, t_2, t_3) => t_1.depth()
+            .max(t_2.depth())
+            .max(t_3.depth())
+            + 1,
+        }
+    }
 }
