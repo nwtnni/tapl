@@ -22,6 +22,8 @@
 % Monospace
 \newcommand{\ms}[1]{\texttt{#1}}
 
+\newcommand{\LabelR}[1]{\RightLabel{\textsc{#1}}}
+
 \theoremstyle{remark}
 \newtheorem*{case}{Case}
 
@@ -79,4 +81,141 @@
             \end{itemize}
         \end{case}
     \end{proof}
+
+\section{3.5.5}
+
+    \textit{Spell out the induction principle used in the preceding proof,}
+    \textit{in the style of Theorem 3.3.4.}
+
+    If, for each derivation $d$, given $P(d)$ for all immediate subderivations
+    $c$ of $d$, we can show $P(d)$, then $P(d)$ holds for all $d$.
+
+\section{3.5.10}
+
+    \textit{Rephrase Definition 3.5.9 as a set of inference rules.}
+
+    \begin{prooftree}
+        \LabelR{B-Zero}
+        \AxiomC{}
+        \UnaryInfC{$t \longrightarrow^* t$}
+    \end{prooftree}
+
+    \begin{prooftree}
+        \LabelR{B-One}
+        \AxiomC{$t \longrightarrow t'$}
+        \UnaryInfC{$t \longrightarrow^* t'$}
+    \end{prooftree}
+
+    \begin{prooftree}
+        \LabelR{B-Trans}
+        \AxiomC{$t \longrightarrow^* t'$}
+        \AxiomC{$t' \longrightarrow^* t''$}
+        \BinaryInfC{$t \longrightarrow^* t''$}
+    \end{prooftree}
+
+\section{3.5.13}
+
+    \textit{Suppose we add a new rule:}
+    \begin{prooftree}
+        \LabelR{E-Funny1}
+        \AxiomC{}
+        \UnaryInfC{\ms{if true then \term{2} else \term{3} $\longrightarrow$ \term{3}}}
+    \end{prooftree}
+    \textit{to the ones in figure 3--1. Which of the above theorems}
+    \textit{(3.5.4, 3.5.7, 3.5.8, 3.5.11, 3.5.12) remain valid?}
+
+    \begin{itemize}
+        \item 3.5.4 (\textsc{Determinancy of One-Step Evaluation}) no longer holds. As a counterexample:
+            \begin{itemize}
+                \item $\ms{if true then true else false} \longrightarrow \ms{true}$ by (\textsc{E-IfTrue})
+                \item $\ms{if true then true else false} \longrightarrow \ms{false}$ by (\textsc{E-Funny1})
+            \end{itemize}
+
+        \item 3.5.7 (Every value is in normal form.) still holds.
+
+        \item 3.5.8 (If \term{} is in normal form, then \term{} is a value.) still holds.
+
+        \item 3.5.11 (\textsc{Uniqueness of Normal Forms}) no longer holds. The same
+            counterexample as 3.5.4 can be used.
+
+        \item 3.5.12 (\textsc{Termination of Evaluation}) still holds.
+    \end{itemize}
+
+    \pagebreak{}
+
+    \textit{Suppose instead that we add this rule:}
+    \begin{prooftree}
+        \LabelR{E-Funny2}
+        \AxiomC{\term{2} $\longrightarrow$ $\term{2}'$}
+        \UnaryInfC{\
+            \ms{if \term{1} then \term{2} else \term{3}}
+            $\longrightarrow$
+            \ms{if \term{1} then $\term{2}'$ else \term{3}}
+        }
+    \end{prooftree}
+    \textit{Now which of the above theorems remain valid?}
+    \textit{Do any of the proofs need to change?}
+
+    \begin{itemize}
+        \item 3.5.4 still holds, but its proof needs to be extended with another
+            case for \textsc{E-Funny2}, which will be almost identical to \textsc{E-If}.
+
+        \item 3.5.7 still holds.
+
+        \item 3.5.8 still holds.
+
+        \item 3.5.11 still holds.
+
+        \item 3.5.12 still holds.
+    \end{itemize}
+
+\section{3.5.14}
+
+    \textit{Show that Theorem 3.5.4 is also valid for the evaluation relation}
+    \textit{on arithmetic expressions: if} $\term{} \longrightarrow \term{}'$ \textit{and}
+    $\term{} \longrightarrow \term{}''$, \textit{then} $\term{}' = \term{}''$.
+
+    \begin{proof}
+        By structural induction on $\term{} \longrightarrow \term{}'$. Our inductive hypothesis is:
+        \begin{align*}
+            H(\term{} \longrightarrow \term{}'): \term{} \longrightarrow \term{}'' \implies \term{}' = \term{}''
+        \end{align*}
+
+        \begin{case}[\textsc{E-Succ}]
+            Here \term{} is in the form $\ms{succ \term{1}}$. No other evaluation rules apply.
+            Suppose $\ms{succ \term{1}} \longrightarrow t''= \ms{succ \term{1}$''$}$.
+            By the inductive hypothesis, if $\term{1} \longrightarrow \term{1}''$,
+            then $\term{1}' = \term{1}''$, and therefore $t' = t''$.
+        \end{case}
+
+        \begin{case}[\textsc{E-PredZero}]
+            Here \term{} is in the form $\ms{pred}\ 0$. No other evaluation rules apply,
+            so $\term{}'$ and $\term{}''$ can only be $0$.
+        \end{case}
+
+        \begin{case}[\textsc{E-PredSucc}]
+            This case is analogous to \textsc{E-PredZero}.
+        \end{case}
+
+        \begin{case}[\textsc{E-Pred}]
+            This case is analogous to \textsc{E-Succ}.
+        \end{case}
+
+        \begin{case}[\textsc{E-IsZeroZero}]
+            This case is analogous to \textsc{E-PredZero}.
+        \end{case}
+
+        \begin{case}[\textsc{E-IsZeroSucc}]
+            This case is analogous to \textsc{E-PredZero}.
+        \end{case}
+
+        \begin{case}[\textsc{E-IsZero}]
+            This case is analogous to \textsc{E-Succ}.
+        \end{case}
+
+        \begin{case}[Other]
+            The proof of all previous Boolean cases remains the same.
+        \end{case}
+    \end{proof}
+
 \end{document}
