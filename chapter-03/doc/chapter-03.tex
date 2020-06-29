@@ -19,6 +19,12 @@
 % t₁, t₂, t₃, ...
 \newcommand{\term}[1]{\texttt{t\textsubscript{#1}}}
 
+% v₁, v₂, v₃, ...
+\newcommand{\val}[1]{\texttt{v\textsubscript{#1}}}
+
+\renewcommand{\ss}[2]{#1 \longrightarrow^* #2}
+\renewcommand{\bs}[2]{#1 \Downarrow #2}
+
 % Monospace
 \newcommand{\ms}[1]{\texttt{#1}}
 
@@ -95,19 +101,19 @@
     \textit{Rephrase Definition 3.5.9 as a set of inference rules.}
 
     \begin{prooftree}
-        \LabelR{B-Zero}
+        \LabelR{M-Zero}
         \AxiomC{}
         \UnaryInfC{$t \longrightarrow^* t$}
     \end{prooftree}
 
     \begin{prooftree}
-        \LabelR{B-One}
+        \LabelR{M-One}
         \AxiomC{$t \longrightarrow t'$}
         \UnaryInfC{$t \longrightarrow^* t'$}
     \end{prooftree}
 
     \begin{prooftree}
-        \LabelR{B-Trans}
+        \LabelR{M-Trans}
         \AxiomC{$t \longrightarrow^* t'$}
         \AxiomC{$t' \longrightarrow^* t''$}
         \BinaryInfC{$t \longrightarrow^* t''$}
@@ -183,9 +189,10 @@
 
         \begin{case}[\textsc{E-Succ}]
             Here \term{} is in the form $\ms{succ \term{1}}$. No other evaluation rules apply.
-            Suppose $\ms{succ \term{1}} \longrightarrow t''= \ms{succ \term{1}$''$}$.
+            Suppose $\ms{succ \term{1}} \longrightarrow \ms{succ \term{1}}'$ and
+            $\ms{succ \term{1}} \longrightarrow \ms{succ \term{1}}''$.
             By the inductive hypothesis, if $\term{1} \longrightarrow \term{1}''$,
-            then $\term{1}' = \term{1}''$, and therefore $t' = t''$.
+            then $\term{1}' = \term{1}''$, and therefore $\term{}' = \term{}''$.
         \end{case}
 
         \begin{case}[\textsc{E-PredZero}]
@@ -218,4 +225,151 @@
         \end{case}
     \end{proof}
 
+\section{3.5.17}
+
+    \textit{Show that the small-step and big-step semantics for this language coincide, i.e.}
+    $\term{} \longrightarrow^* \val{}$ \textit{iff} $\term{} \Downarrow \val{}$.
+
+    \noindent \\
+    We prove one direction at a time.
+
+    \begin{proof}[Forward]
+        By induction on the number of steps in the derivation of $\term{} \longrightarrow^* \val{}$.
+        Our inductive hypothesis is:
+        \begin{align*}
+            H(n): \term{} \longrightarrow^{n} \val{} \implies \bs{\term{}}{\val{}}
+        \end{align*}
+
+        \begin{case}[n = 0]
+            Here, we have $\term{} = \val{}$, and $\bs{\val{}}{\val{}}$ by \textsc{B-Value}.
+        \end{case}
+
+        \begin{case}[n $>$ 0]
+            We proceed by case analysis on the last step, $\term{}' \longrightarrow \val{}$, where:
+            \begin{align*}
+                \term{} \longrightarrow^{n - 1} \term{}' \longrightarrow \val{}
+            \end{align*}
+
+            \begin{case}[\textsc{E-IfTrue}]
+                Here, we have $\ss{\term{1}}{\ms{true}}$ and $\ss{\term{2}}{\val{2}}$. By the
+                inductive hypothesis, $\bs{\term{1}}{\ms{true}}$ and $\bs{\term{2}}{\val{2}}$,
+                and the conclusion follows from \textsc{B-IfTrue}.
+            \end{case}
+
+            \begin{case}[\textsc{E-IfFalse}]
+                Analogous to \textsc{E-IfTrue}.
+            \end{case}
+
+            \begin{case}[\textsc{E-If}]
+                Outcome is not a value.
+            \end{case}
+
+            \begin{case}[\textsc{E-Succ}]
+                Analogous to \textsc{E-IfTrue}, by way of \textsc{B-Succ}.
+            \end{case}
+
+            \begin{case}[\textsc{E-PredZero}]
+                Analogous to \textsc{E-IfTrue}, by way of \textsc{B-PredZero}.
+            \end{case}
+
+            \begin{case}[\textsc{E-PredSucc}]
+                Analogous to \textsc{E-IfTrue}, by way of \textsc{B-PredSucc}.
+            \end{case}
+
+            \begin{case}[\textsc{E-Pred}]
+                Outcome is not a value.
+            \end{case}
+
+            \begin{case}
+
+            \end{case}
+        \end{case}
+
+
+    \end{proof}
+
+    \begin{proof}[Backward]
+        \begin{align*}
+            H(\bs{\term{}}{\val{}}): \ss{\term{}}{\val{}}
+        \end{align*}
+
+        \begin{case}[\textsc{B-Value}]
+            Follows from \textsc{M-Zero}.
+        \end{case}
+
+        \begin{case}[\textsc{B-IfTrue}]
+            By the inductive hypothesis, $\ss{\term{1}}{\texttt{true}}$ and $\ss{\term{2}}{\val{2}}$.
+            Because only \textsc{E-If} applies, we have:
+            \begin{align*}
+                &\ms{if \term{1} then \term{2} else \term{3}} \\
+                &\longrightarrow^* \ms{if true then \term{2} else \term{3}} \\
+                &\longrightarrow \term{2} \\
+                &\longrightarrow^* \val{2}
+            \end{align*}
+            And we conclude this case by transitivity of $\longrightarrow^*$.
+        \end{case}
+
+        \begin{case}[\textsc{B-IfFalse}]
+            Analogous to \textsc{B-IfTrue}.
+        \end{case}
+
+        \begin{case}[\textsc{B-Succ}]
+            Analogous to \textsc{B-IfTrue}, but by way of \textsc{E-Succ}.
+        \end{case}
+
+        \begin{case}[\textsc{B-PredZero}]
+            Analogous to \textsc{B-IfTrue}, but by way of \textsc{E-Pred} and then \textsc{E-PredZero}.
+        \end{case}
+
+        \begin{case}[\textsc{B-PredSucc}]
+            Analogous to \textsc{B-IfTrue}, but by way of \textsc{E-Pred} and then \textsc{E-PredSucc}.
+        \end{case}
+
+        \begin{case}[\textsc{B-IsZeroZero}]
+            Analogous to \textsc{B-IfTrue}, but by way of \textsc{E-IsZero} and then \textsc{E-IsZeroZero}.
+        \end{case}
+
+        \begin{case}[\textsc{B-IsZeroSucc}]
+            Analogous to \textsc{B-IfTrue}, but by way of \textsc{E-IsZero} and then \textsc{E-IsZeroSucc}.
+        \end{case}
+    \end{proof}
+
+\section{3.5.18}
+
+    \textit{Suppose we want to change the evaluation strategy of our language so that the} \ms{then}
+    \textit{and} \ms{else} \textit{branches of an} \ms{if} \textit{expression are evaluated (in that order)}
+    before \textit{the guard is evaluated. Show how the evaluation rules need to change to achieve this effect.}
+
+    \noindent \\
+    We replace \textsc{E-If} with three separate rules:
+
+    \begin{prooftree}
+        \LabelR{E-Then}
+        \AxiomC{\term{2} $\longrightarrow$ \term{2}$'$}
+        \UnaryInfC{$
+            \ms{if \term{1} then \term{2} else \term{3}}
+            \longrightarrow
+            \ms{if \term{1} then \term{2}$'$ else \term{3}}
+        $}
+    \end{prooftree}
+
+    \begin{prooftree}
+        \LabelR{E-Else}
+        \AxiomC{\term{3} $\longrightarrow$ \term{3}$'$}
+        \UnaryInfC{$
+            \ms{if \term{1} then \val{2} else \term{3}}
+            \longrightarrow
+            \ms{if \term{1} then \val{2} else \term{3}$'$}
+        $}
+    \end{prooftree}
+
+    \begin{prooftree}
+        \LabelR{E-If}
+        \AxiomC{\term{1} $\longrightarrow$ \term{1}$'$}
+        \UnaryInfC{$
+            \ms{if \term{1} then \val{2} else \val{3}}
+            \longrightarrow
+            \ms{if \term{1}$'$ then \val{2} else \val{3}}
+        $}
+    \end{prooftree}
 \end{document}
