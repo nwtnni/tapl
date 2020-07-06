@@ -93,7 +93,7 @@
     \textit{Spell out the induction principle used in the preceding proof,}
     \textit{in the style of Theorem 3.3.4.}
 
-    If, for each derivation $d$, given $P(d)$ for all immediate subderivations
+    If, for each derivation $d$, given $P(c)$ for all immediate subderivations
     $c$ of $d$, we can show $P(d)$, then $P(d)$ holds for all $d$.
 
 \section{3.5.10}
@@ -107,15 +107,9 @@
     \end{prooftree}
 
     \begin{prooftree}
-        \LabelR{M-One}
-        \AxiomC{$t \longrightarrow t'$}
-        \UnaryInfC{$t \longrightarrow^* t'$}
-    \end{prooftree}
-
-    \begin{prooftree}
-        \LabelR{M-Trans}
+        \LabelR{M-Step}
         \AxiomC{$t \longrightarrow^* t'$}
-        \AxiomC{$t' \longrightarrow^* t''$}
+        \AxiomC{$t \longrightarrow t''$}
         \BinaryInfC{$t \longrightarrow^* t''$}
     \end{prooftree}
 
@@ -163,14 +157,20 @@
     \textit{Do any of the proofs need to change?}
 
     \begin{itemize}
-        \item 3.5.4 still holds, but its proof needs to be extended with another
-            case for \textsc{E-Funny2}, which will be almost identical to \textsc{E-If}.
+        \item 3.5.4 no longer holds. As a counterexample:
+        \begin{align*}
+            &\ms{if (if true then true else true)} \\
+            &\ms{then (if true then true else true)} \\
+            &\ms{else true}
+        \end{align*}
+
+            We can proceed by \textsc{E-If} or \textsc{E-Funny2}.
 
         \item 3.5.7 still holds.
 
         \item 3.5.8 still holds.
 
-        \item 3.5.11 still holds.
+        \item 3.5.11 still holds, but the proof needs to change.
 
         \item 3.5.12 still holds.
     \end{itemize}
