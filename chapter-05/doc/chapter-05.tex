@@ -1,0 +1,80 @@
+\documentclass{article}
+\title{Chapter 05}
+\author{Newton Ni}
+
+\usepackage{bussproofs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+% Set cardinality: |#1|
+\newcommand{\cardinality}[1]{\lvert#1\rvert}
+
+% Set: { #1 }
+\newcommand{\set}[1]{\{\ #1\ \}}
+
+% Set comprehension: { #1 | #2 }
+\newcommand{\comp}[2]{\set{#1\ \mid\ #2}}
+
+% t₁, t₂, t₃, ...
+\newcommand{\term}[1]{\texttt{t\textsubscript{#1}}}
+
+% v₁, v₂, v₃, ...
+\newcommand{\val}[1]{\texttt{v\textsubscript{#1}}}
+
+% v₁, v₂, v₃, ...
+\newcommand{\var}[1]{\texttt{x\textsubscript{#1}}}
+
+\renewcommand{\ss}[2]{#1 \longrightarrow^* #2}
+\renewcommand{\bs}[2]{#1 \Downarrow #2}
+
+% Monospace
+\newcommand{\ms}[1]{\texttt{#1}}
+
+\newcommand{\LabelR}[1]{\RightLabel{\textsc{#1}}}
+
+\theoremstyle{remark}
+\newtheorem*{case}{Case}
+
+\begin{document}
+\maketitle
+
+\section{5.3.3}
+
+    \textit{Give a careful proof that} $|FV(\term{})| \le size(\term{})$ \textit{for every term} $\term{}$.
+
+    \begin{proof}
+        By structural induction on terms \term{}. Our inductive hypothesis is:
+        $$H(\term{}): |FV(\term{})| \le size(\term{})$$
+
+        \begin{case}[\textsc{T-Var}]
+            Here, $|FV(\var{})| = |\{\var{}\}| = 1 \le size(\var{}) = 1$.
+        \end{case}
+
+        \begin{case}[\textsc{T-Abs}]
+            Here, $|FV(\lambda \var{}. \term{1})| = |FV(\term{1}) \setminus \{\var{}\}|$.
+            \begin{itemize}
+                \item If $\var{} \in FV(\term{1})$, then $|FV(\term{1}) \setminus \{\var{}\}| = |FV(\term{1})| - 1$.
+                \item Otherwise $|FV(\term{1}) \setminus \{\var{}\}| = |FV(\term{1})|$.
+            \end{itemize}
+            It follows that $|FV(\term{1}) \setminus \{\var{}\}| \le |FV(\term{1})|$.
+            \begin{align*}
+                |FV(\lambda \var{}. \term{1})| &= |FV(\term{1}) \setminus \{\var{}\}| \\
+                                               &\le |FV(\term{1})| \tag{By above} \\
+                                               &\le size(\term{1}) \tag{By inductive hypothesis} \\
+                                               &\le size(\term{1}) + 1 \\
+                                               &\le size(\lambda \var{}. \term{1}) \tag{By definition of $size$}
+            \end{align*}
+        \end{case}
+
+        \begin{case}[\textsc{T-App}]
+            \begin{align*}
+                |FV(\term{1}\ \term{2})| &= |FV(\term{1}) \cup FV(\term{2})| \\
+                                         &\le |FV(\term{1})| + |FV(\term{2})| \\
+                                         &\le size(\term{1}) + size(\term{2}) \tag{By inductive hypothesis} \\
+                                         &\le size(\term{1}\ \term{2}) \tag{By definition of $size$}
+            \end{align*}
+        \end{case}
+    \end{proof}
+
+\end{document}
