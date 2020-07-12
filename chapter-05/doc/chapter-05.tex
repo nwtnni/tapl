@@ -25,7 +25,7 @@
 % v₁, v₂, v₃, ...
 \newcommand{\var}[1]{\texttt{x\textsubscript{#1}}}
 
-\renewcommand{\ss}[2]{#1 \longrightarrow^* #2}
+\renewcommand{\ss}[2]{#1 \longrightarrow #2}
 \renewcommand{\bs}[2]{#1 \Downarrow #2}
 
 % Monospace
@@ -76,5 +76,63 @@
             \end{align*}
         \end{case}
     \end{proof}
+
+\pagebreak
+\section{5.3.6}
+
+    \textit{Adapt these rules to describe the other three strategies for}
+    \textit{evaluation---full beta-reduction, normal-order, and lazy evaluation.}
+
+    \subsection*{Full Beta-Reduction}
+
+        \begin{prooftree}
+            \LabelR{E-App1}
+            \AxiomC{$\ss{\term{1}}{\term{1}'}$}
+            \UnaryInfC{$\ss{\term{1}\ \term{2}}{\term{1}'\ \term{2}}$}
+        \end{prooftree}
+
+        \begin{prooftree}
+            \LabelR{E-App2}
+            \AxiomC{$\ss{\term{2}}{\term{2}'}$}
+            \UnaryInfC{$\ss{\term{1}\ \term{2}}{\term{1}\ \term{2}'}$}
+        \end{prooftree}
+
+        \begin{prooftree}
+            \LabelR{E-Abs}
+            \AxiomC{$\ss{\term{1}}{\term{1}'}$}
+            \UnaryInfC{$\ss{\lambda \var{}.\ \term{1}}{\lambda \var{}.\ \term{1}'}$}
+        \end{prooftree}
+
+        \begin{prooftree}
+            \LabelR{E-AppAbs}
+            \AxiomC{}
+            \UnaryInfC{$\ss{
+                (\lambda \var{}.\ \term{1})\ \term{2}
+            }{
+                [\var{} \mapsto \term{2}] \term{1}
+            }$}
+        \end{prooftree}
+
+    \subsection*{Normal-Order}
+
+        % TODO
+
+    \subsection*{Lazy}
+
+        \begin{prooftree}
+            \LabelR{E-App1}
+            \AxiomC{$\ss{\term{1}}{\term{1}'}$}
+            \UnaryInfC{$\ss{\term{1}\ \term{2}}{\term{1}'\ \term{2}}$}
+        \end{prooftree}
+
+        \begin{prooftree}
+            \LabelR{E-AppAbs}
+            \AxiomC{}
+            \UnaryInfC{$\ss{
+                (\lambda \var{}.\ \term{1})\ \term{2}
+            }{
+                [\var{} \mapsto \term{2}] \term{1}
+            }$}
+        \end{prooftree}
 
 \end{document}
