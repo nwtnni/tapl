@@ -135,4 +135,24 @@
             }$}
         \end{prooftree}
 
+\section{5.3.8}
+
+    \textit{Exercise 4.2.2 introduced a ``big-step'' style of evaluation for arithmetic expressions,}
+    \textit{where the basic evaluation relation is ``term \term{} evaluates to final result \val{}''.}
+    \textit{Show how to formulate the evaluation rules for lambda-terms in the big-step style.}
+
+    \begin{prooftree}
+        \LabelR{E-Abs}
+        \AxiomC{}
+        \UnaryInfC{$\bs{\lambda \var{}.\ \term{}}{\lambda \var{}.\ \term{}}$}
+    \end{prooftree}
+
+    \begin{prooftree}
+        \LabelR{E-App}
+        \AxiomC{$\bs{\term{1}}{\lambda \var{}.\ \term{}}$}
+        \AxiomC{$\bs{\term{2}}{\val{2}}$}
+        \AxiomC{$\bs{[\var{} \mapsto \val{2}]\ \term{}}{\term{}'}$}
+        \TrinaryInfC{$\bs{\term{1}\ \term{2}}{\term{}'}$}
+    \end{prooftree}
+
 \end{document}
