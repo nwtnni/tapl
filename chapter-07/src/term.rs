@@ -3,7 +3,7 @@ use std::iter;
 
 use typed_arena::Arena;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Context(Vec<String>);
 
 impl Context {
@@ -25,7 +25,16 @@ impl Context {
 
     pub fn name(&self, index: i64) -> &str {
         assert!(index >= 0);
-        &self.0[index as usize]
+        if index >= self.len() {
+            match index - self.len() {
+            | 0 => "α",
+            | 1 => "β",
+            | 2 => "ξ",
+            | _ => todo!(),
+            }
+        } else {
+            &self.0[index as usize]
+        }
     }
 }
 
