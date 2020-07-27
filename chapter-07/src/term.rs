@@ -33,7 +33,8 @@ impl Context {
             | _ => todo!(),
             }
         } else {
-            &self.0[index as usize]
+            let index = self.0.len() - 1 - index as usize;
+            &self.0[index]
         }
     }
 }
@@ -88,8 +89,9 @@ impl<'a> Term<'a> {
 
     pub fn is_value(&self) -> bool {
         match self {
+        | Term::Var { .. }
         | Term::Abs { .. } => true,
-        | _ => false,
+        | Term::App { .. } => false,
         }
     }
 
