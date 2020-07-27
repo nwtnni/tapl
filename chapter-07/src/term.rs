@@ -1,7 +1,6 @@
 use std::io;
 use std::iter;
 
-use anyhow::anyhow;
 use typed_arena::Arena;
 
 #[derive(Clone, Debug)]
@@ -35,10 +34,6 @@ pub enum Term<'a> {
     Var {
         /// de Bruijn index
         index: i64,
-
-        /// Consistency check: total length of context
-        /// in which this variable occurs
-        length: i64,
     },
     Abs {
         /// Hint for the name of the bound variable
@@ -105,13 +100,8 @@ impl<'a> Term<'a> {
         depth: i64,
     ) -> Self {
         match self {
-        | Term::Var { index, length: _ } if *index == from + depth => to.shift(arena, depth),
-        | Term::Var { index, length } => {
-            Term::Var {
-                index: *index,
-                length: *length,
-            }
-        }
+        | Term::Var { index } if *index == from + depth => to.shift(arena, depth),
+        | Term::Var { index } => Term::Var { index: *index },
         | Term::Abs { hint, term } => {
             Term::Abs {
                 hint: hint.to_owned(),
@@ -133,18 +123,8 @@ impl<'a> Term<'a> {
 
     fn _shift(&self, arena: &'a Arena<Term<'a>>, max_depth: i64, depth: i64) -> Self {
         match self {
-        | Term::Var { index, length } if *index >= depth => {
-            Term::Var {
-                index: index + max_depth,
-                length: length + max_depth,
-            }
-        }
-        | Term::Var { index, length } => {
-            Term::Var {
-                index: *index,
-                length: length + max_depth,
-            }
-        }
+        | Term::Var { index } if *index >= depth => Term::Var { index: index + max_depth },
+        | Term::Var { index } => Term::Var { index: *index },
         | Term::Abs { hint, term } => {
             Term::Abs {
                 hint: hint.to_owned(),
@@ -162,11 +142,8 @@ impl<'a> Term<'a> {
 
     pub fn write<W: io::Write>(&self, context: &mut Context, writer: &mut W) -> anyhow::Result<()> {
         match self {
-        | Term::Var { index, length } if context.len() == *length => {
+        | Term::Var { index } => {
             write!(writer, "{}", context.name(*index))?;
-        }
-        | Term::Var { .. } => {
-            return Err(anyhow!("Context length mismatch at term:\n{:#?}", self));
         }
         | Term::Abs { hint, term } => {
             let name = context.push(hint.to_owned());
