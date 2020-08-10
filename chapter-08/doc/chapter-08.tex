@@ -1,0 +1,169 @@
+\documentclass{article}
+\title{Chapter 08}
+\author{Newton Ni}
+
+\usepackage{bussproofs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+% Set cardinality: |#1|
+\newcommand{\cardinality}[1]{\lvert#1\rvert}
+
+% Set: { #1 }
+\newcommand{\set}[1]{\{\ #1\ \}}
+
+% Set comprehension: { #1 | #2 }
+\newcommand{\comp}[2]{\set{#1\ \mid\ #2}}
+
+% t₁, t₂, t₃, ...
+\newcommand{\term}[1]{\texttt{t\textsubscript{#1}}}
+
+% v₁, v₂, v₃, ...
+\newcommand{\val}[1]{\texttt{v\textsubscript{#1}}}
+
+\renewcommand{\ss}[2]{#1 \longrightarrow #2}
+\renewcommand{\bs}[2]{#1 \Downarrow #2}
+
+% Monospace
+\newcommand{\ms}[1]{\texttt{#1}}
+
+\newcommand{\LabelR}[1]{\RightLabel{\textsc{#1}}}
+
+\theoremstyle{remark}
+\newtheorem*{case}{Case}
+
+\begin{document}
+\maketitle
+
+\section{8.2.3}
+
+    \textit{Prove that every subterm of a well-typed term is well typed.}
+
+    \begin{proof}
+        By induction on the typing derivation of term \term{}. Our inductive hypothesis is:
+        $$H(\term{}): \term{} \textit{ is well-typed} \implies \textit{all subterms of } \term{} \textit{ are well-typed}$$
+
+        We proceed by case analysis on the final step of the derivation.
+        \begin{case}[\ms{true}, \ms{false}, 0]
+            These terms are well-typed by the inversion lemma, and have no subterms.
+        \end{case}
+        \begin{case}[\ms{if \term{1} then \term{2} else \term{3}}]
+            By the inversion lemma, this term is well-typed, and we have three well-typed subterms:
+            \begin{itemize}
+                \item $\term{1} : \ms{Bool}$
+                \item $\term{2} : \ms{R}$
+                \item $\term{3} : \ms{R}$
+            \end{itemize}
+            We can apply the inductive hypothesis to each.
+        \end{case}
+        \begin{case}[\ms{succ \term{1}}, \ms{pred \term{1}}, \ms{iszero \term{1}}]
+            These cases are analagous to the previous case, except they
+            only have one subterm each.
+        \end{case}
+    \end{proof}
+
+\section{8.3.4}
+
+    \textit{Restructure} [the \textsc{Preservation}] \textit{proof so that it goes by}
+    \textit{induction on evaluation derivations rather than typing derivations.}
+
+    \begin{proof}
+        By induction on the derivation of $\ss{\term{}}{\term{}'}$. Our inductive hypothesis is:
+        $$H(\term{}): \term{} : T\ \land\ \ss{\term{}}{\term{}'} \implies \term{}' : T$$
+        We proceed by case analysis on the last step of the derivation. In all cases,
+        we have that $\term{} : T$.
+
+        \begin{case}[\textsc{E-IfTrue}]
+            Here, $\ss{\term{}}{\term{}'}$ is:
+            $$\ss{\ms{if true then \term{2} else \term{3}}}{\term{2}}$$
+            By the inversion lemma, $\term{} : T \implies \term{2} : T$ as desired.
+        \end{case}
+        \begin{case}[\textsc{E-IfFalse}]
+            This case is analagous to the previous one.
+        \end{case}
+
+        \begin{case}[\textsc{E-If}]
+            Here, we have:
+            $$\ss{\ms{if \term{1} then \term{2} else \term{3}}}{\ms{if \term{1}' then \term{2} else \term{3}}}$$
+            $$\ss{\term{1}}{\term{1}'}$$
+            By the inversion lemma, we have:
+            \begin{itemize}
+                \item $\term{1} : \ms{Bool}$
+                \item $\term{2} : \ms{T}$
+                \item $\term{3} : \ms{T}$
+            \end{itemize}
+            By the inductive hypothesis, we also have $\term{1}' : \ms{Bool}$.
+            We conclude $\term{}' : \ms{T}$ by \textsc{T-If}.
+        \end{case}
+
+        \begin{case}[\textsc{E-Succ}]
+            Here, we have:
+            $$\ss{\ms{succ \term{1}}}{\ms{succ \term{1}'}}$$
+            $$\ss{\term{1}}{\term{1}'}$$
+            By the inversion lemma, we have $\term{1} : \ms{Nat}$.
+            By the inductive hypothesis, we have $\term{1}' : \ms{Nat}$.
+            We conclude that $\ms{succ \term{1}'} : \ms{Nat}$ by \textsc{T-Succ}.
+        \end{case}
+        \begin{case}[\textsc{E-Pred}, \textsc{E-IsZero}]
+            These cases are analagous to the previous case.
+        \end{case}
+
+        \begin{case}[\textsc{E-PredZero}, \textsc{E-IsZeroZero}]
+            These cases follow directly from the inversion lemma and typing
+            rules \textsc{T-Zero} and \textsc{T-True}, respectively.
+        \end{case}
+
+        \begin{case}[\textsc{E-PredSucc}]
+            Here, we have:
+            $$\ss{\ms{pred (succ \term{1})}}{\term{1}}$$
+            By two applications of the inversion lemma, we have:
+            \begin{itemize}
+                \item $\ms{succ \term{1}} : \ms{Nat}$
+                \item $\ms{\term{1}} : \ms{Nat}$
+            \end{itemize}
+        \end{case}
+        \begin{case}[\textsc{E-IsZeroSucc}]
+            This case is analagous to the previous case.
+        \end{case}
+
+    \end{proof}
+
+\section{8.3.5}
+
+    \textit{The evaluation rule \textsc{E-PredZero} (Figure 3--2) is a bit counterintuitive:}
+    \textit{we might feel that it makes more sense for the predecessor of zero to be undefined,}
+    \textit{rather than being defined to be zero. Can we achieve this simply by removing the}
+    \textit{rule from the definition of single-step evaluation?} \\
+
+    No, because the term $\ms{pred 0}$ would be well-typed by \textsc{T-Zero} and \textsc{T-Pred},
+    but would be stuck, violating the progress property.
+
+\section{8.3.6}
+
+    \textit{Having seen the subject reduction property, it is reasonable to wonder whether}
+    \textit{the opoosite property---\text{subject expansion}---also holds. Is it always the}
+    \textit{case that, if} $\ss{\term{}}{\term{}'}$ \textit{and} $\term{}' : \ms{T}$ \textit{, then}
+    $\term{} : \ms{T}$? \textit{If so, prove it. If not, give a counterexample.} \\
+
+    No, since ill-typed terms can also take a step. For example:
+    $$\ss{\ms{if true then 0 else true}}{0}$$
+
+\section{8.3.7}
+
+    \textit{Suppose our evaluation relation is defined in the big-step style, as in exercise}
+    \textit{3.5.17. How should the intuitive property of type safety be formalized?} \\
+
+    Type preservation remains the same, but progress is modified to state that all well-typed terms
+    evaluate to a value.
+
+\section{8.3.8}
+
+    \textit{Suppose our evaluation relation is augmented with rules for reducing nonsensical}
+    \textit{terms to an explicit} \ms{wrong} \textit{state, as in Exercise 3.5.16. Now how}
+    \textit{should type safety be formalized?} \\
+
+    Type preservation remains the same, but progress is no longer useful, as terms can always
+    take a step (sometimes to \ms{wrong}).
+
+\end{document}
