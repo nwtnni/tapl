@@ -1,0 +1,214 @@
+\documentclass{article}
+\title{Chapter 09}
+\author{Newton Ni}
+
+\usepackage{bussproofs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{turnstile}
+
+% Set cardinality: |#1|
+\newcommand{\cardinality}[1]{\lvert#1\rvert}
+
+% Set: { #1 }
+\newcommand{\set}[1]{\{\ #1\ \}}
+
+% Set comprehension: { #1 | #2 }
+\newcommand{\comp}[2]{\set{#1\ \mid\ #2}}
+
+% t₁, t₂, t₃, ...
+\newcommand{\term}[1]{\texttt{t\textsubscript{#1}}}
+
+% v₁, v₂, v₃, ...
+\newcommand{\val}[1]{\texttt{v\textsubscript{#1}}}
+
+% T₁, T₂, T₃, ...
+\newcommand{\ty}[1]{\texttt{T\textsubscript{#1}}}
+
+% x₁, x₂, x₃, ...
+\newcommand{\var}[1]{\texttt{x\textsubscript{#1}}}
+
+% T -> T
+\newcommand{\fn}[2]{#1$\rightarrow$#2}
+
+\renewcommand{\ss}[2]{#1 \longrightarrow #2}
+\renewcommand{\bs}[2]{#1 \Downarrow #2}
+
+% Monospace
+\newcommand{\ms}[1]{\texttt{#1}}
+
+\newcommand{\LabelR}[1]{\RightLabel{\textsc{#1}}}
+
+\theoremstyle{remark}
+\newtheorem*{case}{Case}
+
+\begin{document}
+\maketitle
+
+\section{9.2.1}
+
+    \textit{The pure simply typed lambda-calculus with no base types is actually} degenerate\textit{,}
+    \textit{in the sense that it has no well-typed terms at all. Why?} \\
+
+    There are no base cases in the definition of types. There are only function types
+    $\ty{} ::= \ty{} \rightarrow \ty{}$, which cannot generate a finite type.
+
+\section{9.2.2}
+
+    \textit{Show (by drawing derivation trees) that the following terms have the indicated types:}
+
+    $$\texttt{f:Bool} \rightarrow \texttt{Bool} \vdash \texttt{f (if false then true else false) : Bool}$$
+
+    \begin{prooftree}
+        \LabelR{\texttt{Var}}
+        \AxiomC{\texttt{f:\fn{Bool}{Bool}} $\in$ \texttt{f:\fn{Bool}{Bool}}}
+        \UnaryInfC{\texttt{f:\fn{Bool}{Bool}} $\vdash$ \texttt{f:\fn{Bool}{Bool}}}
+
+        \LabelR{\texttt{F}}
+        \AxiomC{}
+        \UnaryInfC{$\vdash$ \texttt{false:Bool}}
+
+        \LabelR{\texttt{T}}
+        \AxiomC{}
+        \UnaryInfC{$\vdash$ \texttt{true:Bool}}
+
+        \LabelR{\texttt{F}}
+        \AxiomC{}
+        \UnaryInfC{$\vdash$ \texttt{false:Bool}}
+
+        \LabelR{\texttt{If}}
+        \TrinaryInfC{\texttt{if false then true else false:Bool}}
+
+        \LabelR{\texttt{App}}
+        \BinaryInfC{\texttt{f (if false then true else false):Bool}}
+    \end{prooftree}
+
+    $$
+        \texttt{f:Bool}\rightarrow\texttt{Bool}
+        \vdash
+        \lambda\var{}\texttt{:Bool. f (if x then false else x):Bool}\rightarrow\texttt{Bool}
+    $$
+
+    \begin{prooftree}
+        \LabelR{Var}
+        \AxiomC{$\ldots$}
+        \UnaryInfC{$\ldots\vdash\texttt{f:Bool}\rightarrow\texttt{Bool}$}
+
+        \LabelR{Var}
+        \AxiomC{$\ldots$}
+        \UnaryInfC{$\ldots\vdash\texttt{x:Bool}$}
+
+        \LabelR{\texttt{F}}
+        \AxiomC{}
+        \UnaryInfC{$\vdash$ \texttt{false:Bool}}
+
+        \LabelR{Var}
+        \AxiomC{$\ldots$}
+        \UnaryInfC{$\ldots\vdash\texttt{x:Bool}$}
+
+        \LabelR{If}
+        \TrinaryInfC{$\ldots\vdash\texttt{if x then false else x:Bool}$}
+
+        \LabelR{App}
+        \BinaryInfC{$\texttt{f:Bool}\rightarrow\texttt{Bool},\texttt{x:Bool}\vdash\texttt{f (if x then false else x):Bool}$}
+
+        \LabelR{Abs}
+        \UnaryInfC{$\texttt{f:Bool}\rightarrow\texttt{Bool}\vdash\ldots\texttt{:Bool}\rightarrow\texttt{Bool}$}
+    \end{prooftree}
+
+\section{9.2.3}
+
+    \textit{Find a context} $\Gamma$ \textit{under which the term} \texttt{f x y} \textit{has type} \texttt{Bool}\textit{.}
+    \textit{Can you give a simple description of the set of} all \textit{such contexts?} \\
+
+    The type of $f$ could be any \fn{\ty{1}}{\fn{\ty{2}}{\texttt{Bool}}}, where $x:\ty{1}$ and $y:\ty{2}$
+    and the latter two types are unconstrained.
+
+\section{9.3.2}
+
+    \textit{Is there any context} $\Gamma$ \textit{and type} \ty{} \textit{such that} $\Gamma\vdash\texttt{x x:\ty{}}$?
+    \textit{If so, give} $\Gamma$ \textit{and} \ty{} \textit{and show a typing derivation; if not, prove it.} \\
+
+    No. Suppose \var{}: \fn{\ty{1}}{\ty{2}}. To successfully apply it to itself, \textsc{T-App} requires
+    that \var{}: \ty{1}. But there is no finite type such that $\ty{1} = \ty{1} \rightarrow \ty{2}$.
+
+\section{9.3.9}
+
+    \textit{Prove the preservation theorem:}
+    $
+        \Gamma\vdash\term{}:\ty{} \land \ss{\term{}}{\term{}'}
+        \implies
+        \Gamma\vdash\term{}':\ty{}
+    $.
+
+    \begin{proof}
+        By induction on the small-step derivation for $\ss{\term{}}{\term{}'}$. Our induction hypothesis is:
+        $$H(\ss{\term{}}{\term{}'}): \Gamma\vdash\term{}:\ty{} \implies \Gamma\vdash\term{}':\ty{}$$
+
+        \begin{case}[\textsc{E-App1}]
+            Here we have $\term{} = \term{1}\ \term{2}$, where:
+            \begin{enumerate}
+                \item $\ss{\term{1}\ \term{2}}{\term{1}'\ \term{2}}$
+                \item $\ss{\term{1}}{\term{1}'}$
+            \end{enumerate}
+            By the inversion lemma, we have:
+            \begin{enumerate}
+                \item[3.] $\Gamma \vdash$ \term{1}: \fn{\ty{1}}{\ty{}}
+                \item[4.] $\Gamma \vdash$ \term{2}: \ty{1}
+            \end{enumerate}
+            We apply the induction hypothesis to (2) and (3) to obtain
+            \begin{enumerate}
+                \item[5.] $\Gamma \vdash \term{1}'$: \fn{\ty{1}}{\ty{}}
+            \end{enumerate}
+            We then apply \textsc{T-App} to (4) and (5) to conclude that $\term{}' = \term{1}'\ \term{2}: \ty{}$, as desired.
+        \end{case}
+
+        \begin{case}[\textsc{E-App2}]
+            This case is analagous to above, except we apply the induction hypothesis to $\term{2}$ instead.
+        \end{case}
+
+        \begin{case}[\textsc{E-AppAbs}]
+            Here we have:
+            \begin{enumerate}
+                \item $\term{} = (\lambda \var{}.\ \term{12}) \val{2}$
+                \item $\term{}' = [\var{} \mapsto \val{2}]\ \term{12}$
+            \end{enumerate}
+            By the inversion lemma, we have:
+            \begin{enumerate}
+                \item[3.] $\Gamma \vdash \lambda \var{}.\ \term{12}$: \fn{\ty{1}}{\ty{}}
+                \item[4.] $\Gamma \vdash \val{2}: \ty{1}$
+            \end{enumerate}
+            By \textsc{T-Abs}, we have:
+            \begin{enumerate}
+                \item[5.] $\Gamma,\ \var{}:\ty{1} \vdash \term{12}$: \ty{}
+            \end{enumerate}
+            By applying the substitution lemma to (5) and (4), we have:
+            \begin{enumerate}
+                \item[6.] $\Gamma \vdash [\var{} \mapsto \val{2}]\ \term{12} : \ty{}$ 
+            \end{enumerate}
+            As desired.
+        \end{case}
+    \end{proof}
+
+\section{9.3.10}
+
+    \textit{In Exercise 8.3.6 we investigated the} subject expansion \textit{property for our simple calculus}
+    \textit{of typed arithmetic expressions. Does it hold for the `functional part' of the simply typed lambda-calculus?}
+    \textit{That is, suppose} \term{} \textit{does not contain any conditional expressions. Do} $\ss{\term{}}{\term{}'}$
+    \textit{and} $\Gamma \vdash \term{}' : \ty{}$ \textit{imply} $\Gamma \vdash \term{} : \ty{}$? \\
+
+    TODO
+
+\section{9.4.1}
+
+    \textit{Which of the rules for the type} \texttt{Bool} \textit{in Figure 8-1 are introduction rules and}
+    \textit{which are elimination rules? What about the rules for} \texttt{Nat} \textit{in figure 8-2?} \\
+
+    For \texttt{Bool}, \textsc{T-True} and \textsc{T-False} are introduction rules,
+    while \textsc{T-If} is an elimination rule.
+
+    For \texttt{Nat}, \textsc{T-Zero}, \textsc{T-Succ}, and \textsc{T-Pred} are introduction rules,
+    while \textsc{T-IsZero} is an elimination rule.
+
+\end{document}
