@@ -1,6 +1,5 @@
 [workspace]
 members = [
-    "chapter-03",
-    "chapter-05",
+    "chapter-04",
     "chapter-07",
 ]
