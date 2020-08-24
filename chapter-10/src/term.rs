@@ -3,6 +3,8 @@ use std::iter;
 
 use typed_arena::Arena;
 
+use crate::r#type::Type;
+
 #[derive(Clone, Debug, Default)]
 pub struct Context(Vec<String>);
 
@@ -41,6 +43,12 @@ impl Context {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Term<'a> {
+    Bool(bool),
+    If {
+        r#if: &'a Term<'a>,
+        then: &'a Term<'a>,
+        r#else: &'a Term<'a>,
+    },
     Var {
         /// de Bruijn index
         index: i64,
@@ -48,6 +56,7 @@ pub enum Term<'a> {
     Abs {
         /// Hint for the name of the bound variable
         hint: String,
+        r#type: Type,
         term: &'a Term<'a>,
     },
     App {
@@ -89,8 +98,10 @@ impl<'a> Term<'a> {
 
     pub fn is_value(&self) -> bool {
         match self {
+        | Term::Bool(_)
         | Term::Var { .. }
         | Term::Abs { .. } => true,
+        | Term::If { .. }
         | Term::App { .. } => false,
         }
     }
@@ -111,11 +122,20 @@ impl<'a> Term<'a> {
         depth: i64,
     ) -> Self {
         match self {
+        | Term::Bool(bool) => Term::Bool(*bool),
+        | Term::If { r#if, then, r#else } => {
+            Term::If {
+                r#if: arena.alloc(r#if._substitute(arena, from, to, depth)),
+                then: arena.alloc(then._substitute(arena, from, to, depth)),
+                r#else: arena.alloc(r#else._substitute(arena, from, to, depth)),
+            }
+        }
         | Term::Var { index } if *index == from + depth => to.shift(arena, depth),
         | Term::Var { index } => Term::Var { index: *index },
-        | Term::Abs { hint, term } => {
+        | Term::Abs { hint, r#type, term } => {
             Term::Abs {
-                hint: hint.to_owned(),
+                hint: hint.clone(),
+                r#type: r#type.clone(),
                 term: arena.alloc(term._substitute(arena, from, to, depth + 1)),
             }
         }
@@ -134,11 +154,20 @@ impl<'a> Term<'a> {
 
     fn _shift(&self, arena: &'a Arena<Term<'a>>, max_depth: i64, depth: i64) -> Self {
         match self {
+        | Term::Bool(bool) => Term::Bool(*bool),
+        | Term::If { r#if, then, r#else } => {
+            Term::If {
+                r#if: arena.alloc(r#if._shift(arena, max_depth, depth)),
+                then: arena.alloc(then._shift(arena, max_depth, depth)),
+                r#else: arena.alloc(r#else._shift(arena, max_depth, depth)),
+            }
+        }
         | Term::Var { index } if *index >= depth => Term::Var { index: index + max_depth },
         | Term::Var { index } => Term::Var { index: *index },
-        | Term::Abs { hint, term } => {
+        | Term::Abs { hint, r#type, term } => {
             Term::Abs {
-                hint: hint.to_owned(),
+                hint: hint.clone(),
+                r#type: r#type.clone(),
                 term: arena.alloc(term._shift(arena, max_depth, depth + 1)),
             }
         }
@@ -153,12 +182,23 @@ impl<'a> Term<'a> {
 
     pub fn write<W: io::Write>(&self, context: &mut Context, writer: &mut W) -> anyhow::Result<()> {
         match self {
+        | Term::Bool(bool) => {
+            write!(writer, "{}", bool)?;
+        }
+        | Term::If { r#if, then, r#else } => {
+            write!(writer, "if ")?;
+            r#if.write(context, writer)?;
+            write!(writer, " then ")?;
+            then.write(context, writer)?;
+            write!(writer, " else ")?;
+            r#else.write(context, writer)?;
+        }
         | Term::Var { index } => {
             write!(writer, "{}", context.name(*index))?;
         }
-        | Term::Abs { hint, term } => {
+        | Term::Abs { hint, r#type, term } => {
             let name = context.push(hint.to_owned());
-            write!(writer, "(λ{}. ", name)?;
+            write!(writer, "(λ{}: {}. ", r#type, name)?;
             term.write(context, writer)?;
             write!(writer, ")")?;
             context.pop();

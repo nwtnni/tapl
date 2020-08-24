@@ -9,62 +9,8 @@ use chapter_10::term::Term;
 pub fn main() -> anyhow::Result<()> {
 
     let arena = Arena::new();
-
-    let terms = vec![
-        // (λx. x) (λy. y) -->* λy. y
-        Term::App {
-            fun: arena.alloc(Term::Abs {
-                hint: String::from("x"),
-                term: arena.alloc(Term::Var { index: 0 }),
-            }),
-            arg: arena.alloc(Term::Abs {
-                hint: String::from("y"),
-                term: arena.alloc(Term::Var { index: 0 }),
-            }),
-        },
-
-        // (λx. λx. x) (λa. λb. a) (λa. λb. b) -->* λa. λb. b
-        Term::App {
-            fun: arena.alloc(Term::App {
-                fun: arena.alloc(Term::Abs {
-                    hint: String::from("x"),
-                    term: arena.alloc(Term::Abs {
-                        hint: String::from("x"),
-                        term: arena.alloc(Term::Var { index: 0 }),
-                    })
-                }),
-                arg: arena.alloc(Term::Abs {
-                    hint: String::from("a"),
-                    term: arena.alloc(Term::Abs {
-                        hint: String::from("b"),
-                        term: arena.alloc(Term::Var { index: 1 }),
-                    })
-                }),
-            }),
-            arg: arena.alloc(Term::Abs {
-                hint: String::from("a"),
-                term: arena.alloc(Term::Abs {
-                    hint: String::from("b"),
-                    term: arena.alloc(Term::Var { index: 0 }),
-                })
-            }),
-        },
-
-        // (λx. λz. x) (λz. z) -->* λz. λz'. z'
-        Term::App {
-            fun: arena.alloc(Term::Abs {
-                hint: String::from("x"),
-                term: arena.alloc(Term::Abs {
-                    hint: String::from("z"),
-                    term: arena.alloc(Term::Var { index: 1 }),
-                }),
-            }),
-            arg: arena.alloc(Term::Abs {
-                hint: String::from("z"),
-                term: arena.alloc(Term::Var { index: 0 }),
-            }),
-        },
-    ];
+    
+    let terms = vec![];
 
     for term in terms {
         step(term, &arena)?;
