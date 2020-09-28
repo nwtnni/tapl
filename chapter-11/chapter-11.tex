@@ -1,0 +1,171 @@
+\documentclass{article}
+\title{Chapter 11}
+\author{Newton Ni}
+
+\usepackage{bussproofs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{turnstile}
+
+% Set cardinality: |#1|
+\newcommand{\cardinality}[1]{\lvert#1\rvert}
+
+% Set: { #1 }
+\newcommand{\set}[1]{\{\ #1\ \}}
+
+% Set comprehension: { #1 | #2 }
+\newcommand{\comp}[2]{\set{#1\ \mid\ #2}}
+
+% t₁, t₂, t₃, ...
+\newcommand{\term}[1]{\texttt{t\textsubscript{#1}}}
+
+% v₁, v₂, v₃, ...
+\newcommand{\val}[1]{\texttt{v\textsubscript{#1}}}
+
+% l₁, l₂, l₃, ...
+\newcommand{\lbl}[1]{\texttt{l\textsubscript{#1}}}
+
+% p₁, p₂, p₃, ...
+\newcommand{\pat}[1]{\texttt{p\textsubscript{#1}}}
+
+% T₁, T₂, T₃, ...
+\newcommand{\ty}[1]{\texttt{T\textsubscript{#1}}}
+
+% x₁, x₂, x₃, ...
+\newcommand{\var}[1]{\texttt{x\textsubscript{#1}}}
+
+% T -> T
+\newcommand{\fn}[2]{#1$\rightarrow$#2}
+
+\renewcommand{\ss}[2]{#1 \longrightarrow #2}
+\renewcommand{\bs}[2]{#1 \Downarrow #2}
+
+% Monospace
+\newcommand{\ms}[1]{\texttt{#1}}
+
+\newcommand{\LabelR}[1]{\RightLabel{\textsc{#1}}}
+
+\theoremstyle{remark}
+\newtheorem*{case}{Case}
+
+\begin{document}
+\maketitle
+
+\section{11.4.1}
+
+    \textit{Show how to formulate ascription as a derived form. Prove that the ``official'' typing}
+    \textit{and evaluation rules given here correspond to your definition in a suitable sense.} \\
+
+    We can formulate ascription using the following transformation \ms{Lower}:
+    \begin{align*}
+        \ms{Lower(t as T)} &= (\lambda \var{} : \ty{}.\ \var{})\ \term{} \\
+        \ms{Lower(t)} &= \term{}
+    \end{align*}
+
+    We wish to prove the following:
+    \begin{align}
+        \Gamma \vdash \term{} : \ty{} &\iff \Gamma \vdash \ms{Lower(t)} : \ty{} \\
+        \ss{\term{}}{\term{}'} &\iff \ss{\ms{Lower(t)}}{\ms{Lower(\term{}')}}
+    \end{align}
+
+    We induct on terms \term{}. For both (1) and (2), all cases except \ms{t = \term{1} as T}
+    follow from straightforward induction. For the forward case of (1), we know the following:
+
+    \begin{enumerate}
+        \item[1.F.1] $\Gamma \vdash \term{1} :\ \ty{}$
+        \item[1.F.2] $\ms{Lower(\term{1} as T)} = (\lambda \var{} : \ty{}.\ \var{})\ \term{1}$
+    \end{enumerate}
+
+    The conclusion follows from applying \textsc{T-App} to (1.F.2), after type-checking
+    the identity function with \textsc{T-Abs}, \textsc{T-Var}, and (1.F.1) (proof tree omitted). \\
+
+    For the backward case of (1), we know:
+    \begin{enumerate}
+        \item[1.B.1] $\Gamma \vdash \ms{Lower(\term{1} as T)} : \ty{}$
+        \item[1.B.2] $\Gamma \vdash (\lambda \var{} : \ty{}.\ \var{})\ \term{1} : \ty{}$
+    \end{enumerate}
+
+    Applying \textsc{T-Abs}, \textsc{T-Var} in reverse (probably need lemma to prove
+    this is okay, as there is only one typing judgment each for these syntactic forms)
+    yields (1.B.3): $\term{1} : \ty{}$, which is enough to finish with \textsc{T-Ascribe}. \\
+
+    For the forward case of (2), there are two sub-cases: when \term{1} is a value or not.
+    When it is a value \val{1}, we apply \textsc{E-Ascribe} to the left-hand side and have
+    $\ss{\ms{\val{1} as \ty{}} }{\val{1}}$. On the right-hand side, we want to show that
+    $\ss{(\lambda \var{} : \ty{}.\ \var{})\ \val{1}}{\val{1}}$. This follows directly from
+    \textsc{E-AppAbs}.
+
+    When \term{1} is not a value, we apply \textsc{E-Ascribe1} to the left-hand side and
+    get $\ss{\ms{\term{1} as \ty{}}}{\term{1}'}$. On the right-hand side, since the identity
+    function is a value, the conclusion follows from applying \textsc{E-App2} and the determinancy
+    of small-step evaluation. \\
+
+    For the backward case of (2), we again distinguish when \term{1} is a value or not,
+    and the logic is similar to above. \\
+
+    \textit{Suppose that, instead of the pair of evaluation rules \textsc{E-Ascribe} and \textsc{E-Ascribe1},}
+    \textit{we had given an ``eager'' rule that throws away an ascription as soon as it is reached. Can}
+    \textit{ascription still be considered as a derived form?} \\
+
+    It depends on the evaluation strategy for the base lambda calculus. For the evaluation rules
+    in the textbook, it would no longer be a derived form, as \textsc{E-AscribeEager} would diverge
+    from the behavior of \textsc{E-App2} when \term{1} is not a value. But if we changed the evaluation
+    strategy to apply functions to their argument eagerly as well, then this would be a derived form.
+
+\section{11.5.2}
+
+    Not sure how to define ``good idea'', but this seems to tangle the evaluation and typing judgments
+    (requiring substitions in order to type-check), and require more computation. I suppose errors would
+    also be harder to track to their source spans, if the error arises within substituted code?
+
+\section{11.8.2}
+
+    \textit{We can add a simple form of pattern matching to an untyped lambda calculus with records}  
+    \textit{by adding a new syntactic category of} patterns . . . \textit{Give typing rules for the}
+    \textit{new constructs (making any changes to the syntax you feel are necessary in the process).} \\
+
+    \begin{prooftree}
+        \LabelR{T-Match}
+        \AxiomC{$match(p, \val{1}) = \sigma$}
+        \AxiomC{$\Gamma \vdash \sigma\ \term{2} : \ty{}$}
+        \BinaryInfC{$\Gamma \vdash match(\pat{}, \val{1})\ \term{2}: \ty{}$}
+    \end{prooftree}
+
+    \textit{Sketch a proof of type preservation and progress for the whole calculus.} \\
+
+\section{11.11.1}
+
+    We can define factorial as:
+    \begin{align*}
+        &\ms{fix} \\
+        &\lambda \ms{factorial}: \ms{int} \to \ms{int}. \\
+        &\lambda \var{}: \ms{int}. \\
+        &\ms{if}\ \var{}\ =\ 0\ \ms{then}\ 1\ \ms{else}\ \ms{factorial}\  (\var{} - 1) * \var{}
+    \end{align*}
+
+\section{11.11.2}
+
+    We can rewrite factorial as:
+    \begin{align*}
+        &\ms{letrec factorial: int $\to$ int} = \\
+        &\lambda \var{}: \ms{int}. \\
+        &\ms{if}\ \var{}\ =\ 0\ \ms{then}\ 1\ \ms{else}\ \ms{factorial}\  (\var{} - 1) * \var{}
+    \end{align*}
+
+\section{11.12.1}
+
+    \textit{Verify that the progress and preservation theorems hold for the simply typed lambda-calculus}
+    \textit{with booleans and lists.}
+
+\section{11.12.2}
+
+    \textit{The presentation of lists here includes many type annotations that are not really needed,}
+    \textit{in the sense that the typing rules can easily derive the annotations from context. Can} all
+    \textit{the type annotations be deleted?} \\
+    
+    The type annotation for \ms{nil} cannot be deleted, because there's no argument to derive the type from.
+    But all of the other syntactic forms for lists (\ms{cons}, \ms{isnil}, \ms{head}, \ms{tail}) can check
+    the type of their argument, so their type annotations are unnecessary.
+
+\end{document}
