@@ -43,7 +43,6 @@ impl Context {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Term<'a> {
-    Unit,
     Bool(bool),
     If {
         r#if: &'a Term<'a>,
@@ -91,7 +90,6 @@ impl<'a> Term<'a> {
 
     pub fn step(&self, arena: &'a Arena<Term<'a>>) -> Option<Self> {
         match self {
-        | Term::Unit
         | Term::Bool(_)
         | Term::Var(_)
         | Term::Abs { .. } => None,
@@ -215,7 +213,6 @@ impl<'a> Term<'a> {
 
     pub fn is_value(&self) -> bool {
         match self {
-        | Term::Unit
         | Term::Bool(_)
         | Term::Var { .. }
         | Term::Abs { .. } => true,
@@ -244,7 +241,6 @@ impl<'a> Term<'a> {
         depth: i64,
     ) -> Self {
         match self {
-        | Term::Unit => Term::Unit,
         | Term::Bool(bool) => Term::Bool(*bool),
         | Term::If { r#if, then, r#else } => {
             Term::If {
@@ -299,7 +295,6 @@ impl<'a> Term<'a> {
 
     fn _shift(&self, arena: &'a Arena<Term<'a>>, max_depth: i64, depth: i64) -> Self {
         match self {
-        | Term::Unit => Term::Unit,
         | Term::Bool(bool) => Term::Bool(*bool),
         | Term::If { r#if, then, r#else } => {
             Term::If {
@@ -350,9 +345,6 @@ impl<'a> Term<'a> {
 
     pub fn write<W: io::Write>(&self, context: &mut Context, writer: &mut W) -> anyhow::Result<()> {
         match self {
-        | Term::Unit => {
-            write!(writer, "()")?;
-        }
         | Term::Bool(bool) => {
             write!(writer, "{}", bool)?;
         }
