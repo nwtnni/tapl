@@ -43,25 +43,39 @@ impl Context {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Term<'a> {
+    Unit,
     Bool(bool),
     If {
         r#if: &'a Term<'a>,
         then: &'a Term<'a>,
         r#else: &'a Term<'a>,
     },
-    Var {
-        /// de Bruijn index
-        index: i64,
-    },
+    /// de Bruijn index
+    Var(i64),
     Abs {
         /// Hint for the name of the bound variable
         hint: String,
         r#type: Type,
-        term: &'a Term<'a>,
+        body: &'a Term<'a>,
     },
     App {
         fun: &'a Term<'a>,
         arg: &'a Term<'a>,
+    },
+    Asc {
+        term: &'a Term<'a>,
+        r#type: Type,
+    },
+    Let {
+        hint: String,
+        arg: &'a Term<'a>,
+        body: &'a Term<'a>,
+    },
+    Tuple(Vec<&'a Term<'a>>),
+    /// Tuple projection
+    Project {
+        tuple: &'a Term<'a>,
+        index: usize,
     },
 }
 
@@ -77,32 +91,140 @@ impl<'a> Term<'a> {
 
     pub fn step(&self, arena: &'a Arena<Term<'a>>) -> Option<Self> {
         match self {
-        | Term::App { fun: Term::Abs { term, .. }, arg } if arg.is_value() => {
-            Some(term.substitute_top(arena, arg))
+        | Term::Unit
+        | Term::Bool(_)
+        | Term::Var(_)
+        | Term::Abs { .. } => None,
+
+        //
+        // ------------------------------- E-AppAbs
+        // (λx. t₁₂) v₂ --> [x |-> v₂] t₁₂
+        | Term::App { fun: Term::Abs { body, .. }, arg } if arg.is_value() => {
+            Some(body.substitute_top(arena, arg))
         }
+
+        //    t₂ --> t₂'
+        // ---------------- E-App2
+        // v₁ t₂ --> v₁ t₂'
         | Term::App { fun, arg } if fun.is_value() => {
             Some(Term::App {
                 fun,
                 arg: arena.alloc(arg.step(arena)?),
             })
         }
+        //    t₁ --> t₁'
+        // ---------------- E-App1
+        // t₁ t₂ --> t₁' t₂
         | Term::App { fun, arg } => {
             Some(Term::App {
                 fun: arena.alloc(fun.step(arena)?),
                 arg,
             })
         }
-        | _ => None,
+
+        //
+        // ------------------------------ E-IfTrue
+        // if true then t₂ else t₃ --> t₂
+        | Term::If { r#if: Term::Bool(true), then, r#else: _ } => Some(Clone::clone(*then)),
+        //
+        // ------------------------------ E-IfFalse
+        // if false then t₂ else t₃ --> t₃
+        | Term::If { r#if: Term::Bool(false), then: _, r#else } => Some(Clone::clone(*r#else)),
+        //
+        //                    t₁ --> t₁'
+        // ------------------------------------------------ E-If
+        // if t₁ then t₂ else t₃ --> if t₁' then t₂ else t₃
+        | Term::If { r#if, then, r#else } => {
+            Some(Term::If {
+                r#if: arena.alloc(r#if.step(arena)?),
+                then,
+                r#else,
+            })
+        }
+
+        //
+        // -------------- E-Ascribe
+        // v₁ as T --> v₁
+        | Term::Asc { term, r#type: _ } if term.is_value() => Some(Clone::clone(*term)),
+        //
+        //      t₁ --> t₁'
+        // -------------------- E-Ascribe1
+        // t₁ as T --> t₁' as T
+        | Term::Asc { term, r#type } => {
+            Some(Term::Asc {
+                term: arena.alloc(term.step(arena)?),
+                r#type: r#type.clone(),
+            })
+        }
+
+        //
+        // ---------------------------------- E-LetV
+        // let x = v₁ in t₂ --> [x |-> v₁] t₂
+        | Term::Let { hint: _, arg, body } if arg.is_value() => Some(body.substitute_top(arena, arg)),
+        //
+        //               t₁ --> t₁'
+        // -------------------------------------- E-Let
+        // let x = t₁ in t₂ --> let x = t₁' in t₂
+        | Term::Let { hint, arg, body } => {
+            Some(Term::Let {
+                hint: hint.clone(),
+                arg: arena.alloc(arg.step(arena)?),
+                body,
+            })
+        }
+
+        //                                         t_j --> t_j'
+        // ---------------------------------------------------------------------------------------- E-Tuple
+        // (v_i^{i ∈ 0..j-1}, t_j, t_k^{k ∈ j+1..n}) --> (v_i^{i ∈ 0..j-1}, t_j', t_k^{k ∈ j+1..n})
+        | Term::Tuple(terms) if terms.iter().any(|term| !term.is_value()) => {
+            let mut before = terms.iter();
+            let mut after = Vec::new();
+
+            while let Some(&term) = before.next() {
+                if term.is_value() {
+                    after.push(term);
+                } else {
+                    after.push(arena.alloc(term.step(arena)?));
+                    break;
+                }
+            }
+
+            after.extend(before);
+            Some(Term::Tuple(after))
+        }
+        | Term::Tuple(_) => None,
+
+        //
+        // -------------------------- E-ProjTuple
+        // (v_i^{i ∈ i..n}).j --> v_j
+        | Term::Project { tuple: Term::Tuple(terms) , index } if terms.iter().all(|term| term.is_value()) => {
+            Some(terms[*index].clone())
+        }
+        //   t₁ --> t₁'
+        // -------------- E-Proj
+        // t₁.i --> t₁'.i
+        | Term::Project { tuple: tuple @ Term::Tuple(_), index } => {
+            Some(Term::Project {
+                tuple: arena.alloc(tuple.step(arena)?),
+                index: *index,
+            })
+        }
+        | Term::Project { .. } => panic!("Could not evaluate ill-typed tuple projection term"),
         }
     }
 
     pub fn is_value(&self) -> bool {
         match self {
+        | Term::Unit
         | Term::Bool(_)
         | Term::Var { .. }
         | Term::Abs { .. } => true,
+        | Term::Tuple(terms) => terms.iter().all(|term| term.is_value()),
         | Term::If { .. }
-        | Term::App { .. } => false,
+        | Term::App { .. }
+        | Term::Asc { .. }
+        | Term::Let { .. }
+        | Term::Project { .. } => false,
         }
     }
 
@@ -122,6 +244,7 @@ impl<'a> Term<'a> {
         depth: i64,
     ) -> Self {
         match self {
+        | Term::Unit => Term::Unit,
         | Term::Bool(bool) => Term::Bool(*bool),
         | Term::If { r#if, then, r#else } => {
             Term::If {
@@ -130,19 +253,41 @@ impl<'a> Term<'a> {
                 r#else: arena.alloc(r#else._substitute(arena, from, to, depth)),
             }
         }
-        | Term::Var { index } if *index == from + depth => to.shift(arena, depth),
-        | Term::Var { index } => Term::Var { index: *index },
-        | Term::Abs { hint, r#type, term } => {
+        | Term::Var(index) if *index == from + depth => to.shift(arena, depth),
+        | Term::Var(index) => Term::Var(*index),
+        | Term::Abs { hint, r#type, body } => {
             Term::Abs {
                 hint: hint.clone(),
                 r#type: r#type.clone(),
-                term: arena.alloc(term._substitute(arena, from, to, depth + 1)),
+                body: arena.alloc(body._substitute(arena, from, to, depth + 1)),
             }
         }
         | Term::App { fun, arg } => {
             Term::App {
                 fun: arena.alloc(fun._substitute(arena, from, to, depth)),
                 arg: arena.alloc(arg._substitute(arena, from, to, depth)),
+            }
+        }
+        | Term::Asc { term, r#type } => {
+            Term::Asc {
+                term: arena.alloc(term._substitute(arena, from, to, depth)),
+                r#type: r#type.clone(),
+            }
+        }
+        | Term::Let { hint, arg, body } => {
+            Term::Let {
+                hint: hint.clone(),
+                arg: arena.alloc(arg._substitute(arena, from, to, depth)),
+                body: arena.alloc(body._substitute(arena, from, to, depth + 1)),
+            }
+        }
+        | Term::Tuple(terms) => {
+            Term::Tuple(terms.iter().map(|term| &*arena.alloc(term._substitute(arena, from, to, depth))).collect())
+        }
+        | Term::Project { tuple, index } => {
+            Term::Project {
+                tuple: arena.alloc(tuple._substitute(arena, from, to, depth)),
+                index: *index,
             }
         }
         }
@@ -154,6 +299,7 @@ impl<'a> Term<'a> {
 
     fn _shift(&self, arena: &'a Arena<Term<'a>>, max_depth: i64, depth: i64) -> Self {
         match self {
+        | Term::Unit => Term::Unit,
         | Term::Bool(bool) => Term::Bool(*bool),
         | Term::If { r#if, then, r#else } => {
             Term::If {
@@ -162,13 +308,13 @@ impl<'a> Term<'a> {
                 r#else: arena.alloc(r#else._shift(arena, max_depth, depth)),
             }
         }
-        | Term::Var { index } if *index >= depth => Term::Var { index: index + max_depth },
-        | Term::Var { index } => Term::Var { index: *index },
-        | Term::Abs { hint, r#type, term } => {
+        | Term::Var(index) if *index >= depth => Term::Var(index + max_depth),
+        | Term::Var(index) => Term::Var(*index),
+        | Term::Abs { hint, r#type, body } => {
             Term::Abs {
                 hint: hint.clone(),
                 r#type: r#type.clone(),
-                term: arena.alloc(term._shift(arena, max_depth, depth + 1)),
+                body: arena.alloc(body._shift(arena, max_depth, depth + 1)),
             }
         }
         | Term::App { fun, arg } => {
@@ -177,11 +323,36 @@ impl<'a> Term<'a> {
                 arg: arena.alloc(arg._shift(arena, max_depth, depth)),
             }
         }
+        | Term::Asc { term, r#type } => {
+            Term::Asc {
+                term: arena.alloc(term._shift(arena, max_depth, depth)),
+                r#type: r#type.clone(),
+            }
+        }
+        | Term::Let { hint, arg, body } => {
+            Term::Let {
+                hint: hint.clone(),
+                arg: arena.alloc(arg._shift(arena, max_depth, depth)),
+                body: arena.alloc(body._shift(arena, max_depth, depth + 1)),
+            }
+        }
+        | Term::Tuple(terms) => {
+            Term::Tuple(terms.iter().map(|term| &*arena.alloc(term._shift(arena, max_depth, depth))).collect())
+        }
+        | Term::Project { tuple, index } => {
+            Term::Project {
+                tuple: arena.alloc(tuple._shift(arena, max_depth, depth)),
+                index: *index,
+            }
+        }
         }
     }
 
     pub fn write<W: io::Write>(&self, context: &mut Context, writer: &mut W) -> anyhow::Result<()> {
         match self {
+        | Term::Unit => {
+            write!(writer, "()")?;
+        }
         | Term::Bool(bool) => {
             write!(writer, "{}", bool)?;
         }
@@ -193,13 +364,13 @@ impl<'a> Term<'a> {
             write!(writer, " else ")?;
             r#else.write(context, writer)?;
         }
-        | Term::Var { index } => {
+        | Term::Var(index) => {
             write!(writer, "{}", context.name(*index))?;
         }
-        | Term::Abs { hint, r#type, term } => {
+        | Term::Abs { hint, r#type, body } => {
             let name = context.push(hint.to_owned());
             write!(writer, "(λ{}: {}. ", r#type, name)?;
-            term.write(context, writer)?;
+            body.write(context, writer)?;
             write!(writer, ")")?;
             context.pop();
         }
@@ -209,6 +380,33 @@ impl<'a> Term<'a> {
             write!(writer, " ")?;
             arg.write(context, writer)?;
             write!(writer, ")")?;
+        }
+        | Term::Asc { term, r#type } => {
+            term.write(context, writer)?;
+            write!(writer, " as {}", r#type)?;
+        }
+        | Term::Let { hint, arg, body } => {
+            let name = context.push(hint.to_owned());
+            write!(writer, "let {} = ", name)?;
+            arg.write(context, writer)?;
+            write!(writer, " in ")?;
+            body.write(context, writer)?;
+        }
+        | Term::Tuple(terms) => {
+            let mut terms = terms.iter();
+            write!(writer, "(")?;
+            if let Some(head) = terms.next() {
+                head.write(context, writer)?;
+            }
+            while let Some(tail) = terms.next() {
+                write!(writer, ", ")?;
+                tail.write(context, writer)?;
+            }
+            write!(writer, ")")?;
+        }
+        | Term::Project { tuple, index } => {
+            tuple.write(context, writer)?;
+            write!(writer, ".{}", index)?;
         }
         }
         Ok(())
