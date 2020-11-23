@@ -2,14 +2,16 @@ use std::collections::HashMap;
 use std::fmt;
 
 use anyhow::anyhow;
+use indexmap::IndexMap;
 
 use crate::term::Term;
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Type {
     Bool,
     Fun(Box<Type>, Box<Type>),
     Tuple(Vec<Type>),
+    Record(IndexMap<String, Type>),
 }
 
 impl fmt::Display for Type {
@@ -27,6 +29,17 @@ impl fmt::Display for Type {
                 write!(fmt, ", {}", tail)?;
             }
             write!(fmt, ")")
+        }
+        | Type::Record(types) => {
+            let mut types = types.iter();
+            write!(fmt, "{{")?;
+            if let Some((label, r#type)) = types.next() {
+                write!(fmt, "{} = {}", label, r#type)?;
+            }
+            while let Some((label, r#type)) = types.next() {
+                write!(fmt, ", {} = {}", label, r#type)?;
+            }
+            write!(fmt, "}}")
         }
         }
     }
@@ -128,13 +141,39 @@ impl<'a> Term<'a> {
         // Γ |- t₁ : (T_i^{i ∈ 0..n})
         // -------------------------- T-Proj
         //      Γ |- t₁.j : T_j
-        | Term::Project { tuple, index } => {
+        | Term::TupleProject { tuple, index } => {
             match tuple.check(context, depth)? {
             | Type::Tuple(mut types) if *index < types.len() => {
                 Ok(types.swap_remove(*index))
             }
             | Type::Tuple(_) => Err(anyhow!("Projecting more elements than tuple contains")),
             | _ => Err(anyhow!("Can only project tuples")),
+            }
+        }
+
+        //         for each i, Γ |- t_i : T_i
+        // ---------------------------------------- T-Rcd
+        // Γ |- {l_i=t_i^{i ∈ 0..n}} : {l_i=T_i^{i ∈ 0..n}}
+        | Term::Record(terms) => {
+            terms
+                .iter()
+                .map(|(label, term)| {
+                    term.check(context, depth)
+                        .map(|term| (label.to_owned(), term))
+                })
+                .collect::<Result<IndexMap<_, _>, _>>()
+                .map(Type::Record)
+        }
+        // Γ |- t₁ : {l_i=T_i^{i ∈ 0..n}}
+        // -------------------------- T-Proj
+        //      Γ |- t₁.l_j : T_j
+        | Term::RecordProject { record, label } => {
+            match record.check(context, depth)? {
+            | Type::Record(mut types) if types.contains_key(label) => {
+                Ok(types.remove(label).unwrap())
+            }
+            | Type::Record(_) => Err(anyhow!("Projecting unknown label from record")),
+            | _ => Err(anyhow!("Can only project records or tuples")),
             }
         }
         }

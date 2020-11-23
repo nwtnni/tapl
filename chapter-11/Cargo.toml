@@ -8,4 +8,5 @@ edition = "2018"
 
 [dependencies]
 anyhow = "1.0"
+indexmap = "1.6.0"
 typed-arena = "2.0"

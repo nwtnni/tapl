@@ -1,6 +1,7 @@
 use std::io;
 use std::iter;
 
+use indexmap::IndexMap;
 use typed_arena::Arena;
 
 use crate::r#type::Type;
@@ -41,7 +42,7 @@ impl Context {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Term<'a> {
     Bool(bool),
     If {
@@ -71,10 +72,15 @@ pub enum Term<'a> {
         body: &'a Term<'a>,
     },
     Tuple(Vec<&'a Term<'a>>),
-    /// Tuple projection
-    Project {
+    TupleProject {
         tuple: &'a Term<'a>,
         index: usize,
+    },
+
+    Record(IndexMap<String, &'a Term<'a>>),
+    RecordProject {
+        record: &'a Term<'a>,
+        label: String,
     },
 }
 
@@ -195,19 +201,57 @@ impl<'a> Term<'a> {
         //
         // -------------------------- E-ProjTuple
         // (v_i^{i ∈ i..n}).j --> v_j
-        | Term::Project { tuple: Term::Tuple(terms) , index } if terms.iter().all(|term| term.is_value()) => {
+        | Term::TupleProject { tuple: Term::Tuple(terms), index } if terms.iter().all(|term| term.is_value()) => {
             Some(terms[*index].clone())
         }
         //   t₁ --> t₁'
         // -------------- E-Proj
         // t₁.i --> t₁'.i
-        | Term::Project { tuple: tuple @ Term::Tuple(_), index } => {
-            Some(Term::Project {
+        | Term::TupleProject { tuple: tuple @ Term::Tuple(_), index } => {
+            Some(Term::TupleProject {
                 tuple: arena.alloc(tuple.step(arena)?),
                 index: *index,
             })
         }
-        | Term::Project { .. } => panic!("Could not evaluate ill-typed tuple projection term"),
+        | Term::TupleProject { .. } => panic!("Could not evaluate ill-typed tuple projection term"),
+
+        //                                                   t_j --> t_j'
+        // ---------------------------------------------------------------------------------------------------------------- E-Record
+        // {l_i=v_i^{i ∈ 0..j-1}, l_j=t_j, l_k=t_k^{k ∈ j+1..n}} --> {l_i=v_i^{i ∈ 0..j-1}, l_j=t_j', l_k=t_k^{k ∈ j+1..n}}
+        | Term::Record(terms) if terms.values().any(|term| !term.is_value()) => {
+            let mut before = terms.iter().map(|(label, &term)| (label.to_owned(), term));
+            let mut after = IndexMap::new();
+
+            while let Some((label, term)) = before.next() {
+                if term.is_value() {
+                    after.insert(label, term);
+                } else {
+                    after.insert(label, arena.alloc(term.step(arena)?));
+                    break;
+                }
+            }
+
+            after.extend(before);
+            Some(Term::Record(after))
+        }
+        | Term::Record(_) => None,
+
+        //
+        // -------------------------- E-ProjRecord
+        // {l_i = v_i^{i ∈ i..n}}.l_j --> v_j
+        | Term::RecordProject { record: Term::Record(terms), label } if terms.values().all(|term| term.is_value()) => {
+            Some(terms[label].clone())
+        }
+        //   t₁ --> t₁'
+        // -------------- E-Proj
+        // t₁.l --> t₁'.l
+        | Term::RecordProject { record: record @ Term::Record(_), label } => {
+            Some(Term::RecordProject {
+                record: arena.alloc(record.step(arena)?),
+                label: label.clone(),
+            })
+        }
+        | Term::RecordProject { .. } => panic!("Could not evaluate ill-typed record projection term"),
         }
     }
 
@@ -217,11 +261,13 @@ impl<'a> Term<'a> {
         | Term::Var { .. }
         | Term::Abs { .. } => true,
         | Term::Tuple(terms) => terms.iter().all(|term| term.is_value()),
+        | Term::Record(terms) => terms.values().all(|term| term.is_value()),
         | Term::If { .. }
         | Term::App { .. }
         | Term::Asc { .. }
         | Term::Let { .. }
-        | Term::Project { .. } => false,
+        | Term::TupleProject { .. }
+        | Term::RecordProject { .. } => false,
         }
     }
 
@@ -280,10 +326,22 @@ impl<'a> Term<'a> {
         | Term::Tuple(terms) => {
             Term::Tuple(terms.iter().map(|term| &*arena.alloc(term._substitute(arena, from, to, depth))).collect())
         }
-        | Term::Project { tuple, index } => {
-            Term::Project {
+        | Term::TupleProject { tuple, index } => {
+            Term::TupleProject {
                 tuple: arena.alloc(tuple._substitute(arena, from, to, depth)),
                 index: *index,
+            }
+        }
+        | Term::Record(terms) => {
+            Term::Record(terms.iter().map(|(label, term)| (
+                label.to_owned(),
+                &*arena.alloc(term._substitute(arena, from, to, depth)),
+            )).collect())
+        }
+        | Term::RecordProject { record, label } => {
+            Term::RecordProject {
+                record: arena.alloc(record._substitute(arena, from, to, depth)),
+                label: label.to_owned(),
             }
         }
         }
@@ -334,10 +392,22 @@ impl<'a> Term<'a> {
         | Term::Tuple(terms) => {
             Term::Tuple(terms.iter().map(|term| &*arena.alloc(term._shift(arena, max_depth, depth))).collect())
         }
-        | Term::Project { tuple, index } => {
-            Term::Project {
+        | Term::TupleProject { tuple, index } => {
+            Term::TupleProject {
                 tuple: arena.alloc(tuple._shift(arena, max_depth, depth)),
                 index: *index,
+            }
+        }
+        | Term::Record(terms) => {
+            Term::Record(terms.iter().map(|(label, term)| (
+                label.to_owned(),
+                &*arena.alloc(term._shift(arena, max_depth, depth)),
+            )).collect())
+        }
+        | Term::RecordProject { record, label } => {
+            Term::RecordProject {
+                record: arena.alloc(record._shift(arena, max_depth, depth)),
+                label: label.to_owned(),
             }
         }
         }
@@ -396,9 +466,26 @@ impl<'a> Term<'a> {
             }
             write!(writer, ")")?;
         }
-        | Term::Project { tuple, index } => {
+        | Term::TupleProject { tuple, index } => {
             tuple.write(context, writer)?;
             write!(writer, ".{}", index)?;
+        }
+        | Term::Record(terms) => {
+            let mut terms = terms.iter();
+            write!(writer, "{{")?;
+            if let Some((label, term)) = terms.next() {
+                write!(writer, "{} = ", label)?;
+                term.write(context, writer)?;
+            }
+            while let Some((label, term)) = terms.next() {
+                write!(writer, ", {} =", label)?;
+                term.write(context, writer)?;
+            }
+            write!(writer, "}}")?;
+        }
+        | Term::RecordProject { record, label } => {
+            record.write(context, writer)?;
+            write!(writer, ".{}", label)?;
         }
         }
         Ok(())
